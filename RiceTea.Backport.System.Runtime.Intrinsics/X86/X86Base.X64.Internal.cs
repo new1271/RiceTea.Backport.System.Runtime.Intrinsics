@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
@@ -140,3 +141,4 @@ partial class X86Base
         private static partial class StoreAsSpan { }
     }
 }
+#endif

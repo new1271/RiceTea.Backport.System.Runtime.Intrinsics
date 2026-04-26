@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 namespace System.Runtime.Intrinsics.X86;
 
 partial class Bmi1
@@ -18,3 +19,4 @@ partial class Bmi1
         public static partial ulong TrailingZeroCount(ulong value);
     }
 }
+#endif

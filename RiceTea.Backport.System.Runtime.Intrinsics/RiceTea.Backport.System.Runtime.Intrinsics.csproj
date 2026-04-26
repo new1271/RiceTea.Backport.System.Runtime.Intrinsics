@@ -33,8 +33,8 @@
 			<PackagePath>\</PackagePath>
 		</None>
 	</ItemGroup>
-	
-	<ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<PackageReference Include="Absence.Fody" Version="2.0.11">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
@@ -51,9 +51,7 @@
 		<PackageReference Include="LocalsInit.Fody" Version="1.1.0">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-	</ItemGroup>
-	
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+
 		<!-- Only for develop use!-->
 		<PackageReference Include="System.Memory" Version="4.6.3">
 			<PrivateAssets>all</PrivateAssets>

@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 using System.Runtime.CompilerServices;
 
 namespace System.Runtime.Intrinsics.Helpers;
@@ -32,3 +33,4 @@ internal static class SoftDependencyHelper
         public static bool CheckMemory() => ReadOnlyMemory<byte>.Empty.Length == 0;
     }
 }
+#endif

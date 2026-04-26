@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 using InlineMethod;
 
 namespace System.Runtime.Intrinsics.X86;
@@ -62,3 +63,4 @@ public static partial class X86Base
     /// <summary>  DIV reg/m</summary>
     public static partial (nuint Quotient, nuint Remainder) DivRem(nuint lower, nuint upper, nuint divisor);
 }
+#endif

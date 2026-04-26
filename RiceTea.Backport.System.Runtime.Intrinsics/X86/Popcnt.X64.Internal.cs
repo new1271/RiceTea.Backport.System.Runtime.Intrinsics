@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
@@ -49,3 +50,4 @@ partial class Popcnt
         private static partial class StoreAsSpan { }
     }
 }
+#endif

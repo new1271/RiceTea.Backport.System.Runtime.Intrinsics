@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 using InlineIL;
 
 using InlineMethod;
@@ -55,3 +56,4 @@ internal static unsafe class UnsafeHelper
         throw IL.Unreachable();
     }
 }
+#endif

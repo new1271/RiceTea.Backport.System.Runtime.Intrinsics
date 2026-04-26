@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 namespace System.Runtime.Intrinsics.X86;
 
 /// <summary>
@@ -16,3 +17,4 @@ public static partial class Bmi1
     /// </summary>
     public static partial uint TrailingZeroCount(uint value);
 }
+#endif

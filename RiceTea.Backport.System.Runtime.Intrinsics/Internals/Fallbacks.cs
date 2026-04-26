@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 using System.Runtime.Intrinsics.Helpers;
 
 namespace System.Runtime.Intrinsics;
@@ -50,3 +51,4 @@ internal static partial class Fallbacks
         return (int)value;
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 namespace System.Runtime.Intrinsics.X86;
 
 partial class X86Base
@@ -37,3 +38,4 @@ partial class X86Base
         public static partial (ulong Quotient, ulong Remainder) DivRem(ulong lower, ulong upper, ulong divisor);
     }
 }
+#endif

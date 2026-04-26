@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -133,3 +134,4 @@ unsafe partial class X86Base
             => $"{{EAX = {_eax}, EBX = {_ebx}, ECX = {_ecx}, EDX = {_edx}}}";
     }
 }
+#endif

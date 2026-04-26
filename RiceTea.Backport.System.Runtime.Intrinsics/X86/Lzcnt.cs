@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 namespace System.Runtime.Intrinsics.X86;
 
 /// <summary>Provides access to X86 LZCNT hardware instructions via intrinsics.</summary>
@@ -14,3 +15,4 @@ public static partial class Lzcnt
     /// </summary>
     public static partial uint LeadingZeroCount(uint value);
 }
+#endif

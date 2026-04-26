@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 namespace System.Runtime.Intrinsics.X86;
 
 partial class Popcnt
@@ -18,3 +19,4 @@ partial class Popcnt
         public static partial ulong PopCount(ulong value);
     }
 }
+#endif

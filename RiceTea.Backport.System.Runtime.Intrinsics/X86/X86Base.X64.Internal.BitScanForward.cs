@@ -1,3 +1,4 @@
+#if !NETSTANDARD2_1_OR_GREATER
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
 using System.Runtime.Intrinsics.Internals;
@@ -69,3 +70,4 @@ partial class X86Base
 #endif
     }
 }
+#endif
