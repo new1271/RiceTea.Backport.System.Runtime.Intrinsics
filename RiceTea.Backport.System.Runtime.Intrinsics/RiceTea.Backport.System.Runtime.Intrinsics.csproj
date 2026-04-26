@@ -20,6 +20,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Include="..\LICENSE">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+	
+	<ItemGroup>
 		<PackageReference Include="Absence.Fody" Version="2.0.11">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
