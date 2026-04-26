@@ -9,62 +9,54 @@ namespace System.Runtime.Intrinsics.X86;
 
 partial class Bmi1
 {
-    partial class X64
+    unsafe partial class X64
     {
 #if ((X86_ARCH && B64_ARCH) || ANYCPU)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectTzcntAsm()
+        private static uint InjectTzcntAsm(void* destination)
         {
 #if !B64_ARCH
             if (!PlatformHelper.IsX64)
-                return;
+                throw new PlatformNotSupportedException();
 #endif
-            InjectTzcntAsm_X64();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectTzcntAsm_X64()
-        {
             if (SoftDependencyHelper.SystemMemoryExists)
-                StoreAsSpan.InjectTzcntAsm_X64();
+                return StoreAsSpan.InjectTzcntAsm(destination);
             else
-                StoreAsArray.InjectTzcntAsm_X64();
+                return StoreAsArray.InjectTzcntAsm(destination);
         }
 
         partial class StoreAsArray
         {
             [MethodImpl(MethodImplOptions.NoInlining)]
-            public static void InjectTzcntAsm_X64()
+            public static uint InjectTzcntAsm(void* destination)
             {
-                const int Length = 8;
+                const int Length = 5;
                 byte[] data = new byte[Length] {
-                    0xF3, 0x48, 0x0F, 0xBC, 0xC1,
-                    0xC3, 0xCC, 0xCC
+                    0xF3, 0x48, 0x0F, 0xBC, 0xC1
                 };
-                IL.Emit.Ldtoken(MethodRef.Method(typeof(X64), nameof(TrailingZeroCount)));
-                IL.Pop(out RuntimeMethodHandle method);
-                AsmCodeHelper.InjectAsmCode(method, data, Length);
+                fixed (byte* source = data)
+                    UnsafeHelper.CopyBlock(destination, source, Length);
+                return Length;
             }
         }
 
         partial class StoreAsSpan
         {
             [MethodImpl(MethodImplOptions.NoInlining)]
-            public static void InjectTzcntAsm_X64()
+            public static uint InjectTzcntAsm(void* destination)
             {
-                const int Length = 8;
+                const int Length = 5;
                 ReadOnlySpan<byte> data = [
-                    0xF3, 0x48, 0x0F, 0xBC, 0xC1,
-                    0xC3, 0xCC, 0xCC
+                    0xF3, 0x48, 0x0F, 0xBC, 0xC1
                 ];
-                IL.Emit.Ldtoken(MethodRef.Method(typeof(X64), nameof(TrailingZeroCount)));
-                IL.Pop(out RuntimeMethodHandle method);
-                AsmCodeHelper.InjectAsmCode(method, data, Length);
+                fixed (byte* source = data)
+                    UnsafeHelper.CopyBlock(destination, source, Length);
+                return Length;
             }
         }
 #else
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectTzcntAsm() {}
+        private static uint InjectTzcntAsm(void* destination) => throw new PlatformNotSupportedException();
 #endif
     }
 }

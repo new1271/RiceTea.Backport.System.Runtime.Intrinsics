@@ -1,6 +1,7 @@
 #if !NETSTANDARD2_1_OR_GREATER
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Internals;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -34,20 +35,31 @@ partial class Bmi1
 
         [DebuggerHidden]
         [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
         public static partial ulong TrailingZeroCount(ulong value)
         {
             if (!_isSupported)
                 throw new PlatformNotSupportedException();
 
-            InjectTzcntAsm();
+            CallSiteInjector.InjectStart(value);
+            return TrailingZeroCount_InjectEnd(Fallbacks.TrailingZeroCountSoftwareFallback(value));
+        }
 
-            uint lo = (uint)value;
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static unsafe ulong TrailingZeroCount_InjectEnd(ulong value)
+        {
+            byte* callSite = (byte*)CallSiteInjector.FindCallSite();
+            byte* startInjectAddress = (byte*)CallSiteInjector.InjectStartAddress;
 
-            if (lo == 0)
-                return 32 + (uint)Fallbacks.TrailingZeroCountSoftwareFallback((uint)(value >> 32));
+            uint length = (uint)(callSite - startInjectAddress);
+            AsmCodeHelper.LetMemoryPageCanRWX(startInjectAddress, length);
 
-            return (uint)Fallbacks.TrailingZeroCountSoftwareFallback(lo);
+            byte* jumpAddress = startInjectAddress + InjectTzcntAsm(startInjectAddress);
+            CallSiteInjector.InjectJumpInstructionAndNopSequence(jumpAddress, (uint)(callSite - jumpAddress));
+
+            AsmCodeHelper.FlushInstructionCache(startInjectAddress, length);
+
+            return value;
         }
 
         private static partial class StoreAsArray { }
