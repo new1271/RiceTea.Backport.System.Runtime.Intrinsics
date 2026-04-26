@@ -17,6 +17,8 @@
 		<SignAssembly>True</SignAssembly>
 		<AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<PackageProjectUrl>https://github.com/new1271/RiceTea.Backport.System.Runtime.Intrinsics</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/new1271/RiceTea.Backport.System.Runtime.Intrinsics</RepositoryUrl>
 	</PropertyGroup>
 
 	<ItemGroup>
