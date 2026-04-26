@@ -12,6 +12,7 @@
 		<AssemblyVersion>1.0.0</AssemblyVersion>
 		<Authors>RiceTea</Authors>
 		<PackageId>RiceTea.Backport.System.Runtime.Intrinsics</PackageId>
+		<PackageTags>intrinsics</PackageTags>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
 		<PackageReadmeFile>package_README.md</PackageReadmeFile>
