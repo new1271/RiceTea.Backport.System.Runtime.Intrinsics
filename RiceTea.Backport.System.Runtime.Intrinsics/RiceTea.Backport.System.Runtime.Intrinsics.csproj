@@ -7,8 +7,8 @@
 		<Nullable>enable</Nullable>
 		<LangVersion>14.0</LangVersion>
 		<Platforms>AnyCPU;x64;x86</Platforms>
-		<AssemblyTitle>System.Runtime.Intrinsics</AssemblyTitle>
-		<AssemblyName>System.Runtime.Intrinsics</AssemblyName>
+		<AssemblyTitle>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyTitle>
+		<AssemblyName>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyName>
 		<Authors>RiceTea</Authors>
 		<PackageId>RiceTea.Backport.System.Runtime.Intrinsics</PackageId>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
