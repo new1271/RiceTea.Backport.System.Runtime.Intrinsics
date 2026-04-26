@@ -66,11 +66,12 @@ namespace System.Runtime.Intrinsics.Internals
                         Native_Unix.backtrace(backTraces + 1, 1);
 
                         offset = backTraces[0] == backTraces[1] ? 2 : 1; // 跳過這個函數本身和可能存在的 P/Invoke Stub
-                        int captures = Native_Unix.backtrace(backTraces, offset + 4);
-                        if (captures < 0 || captures > ushort.MaxValue)
+                        int limit = offset + 4;
+                        int captures = Native_Unix.backtrace(backTraces, limit);
+                        if (captures < 0 || captures > limit)
                             throw new InvalidOperationException();
 
-                        return Compute(backTraces + offset, (ushort)captures, callSiteMethodStartAddress, injectEndFuncStartAddress);
+                        return Compute(backTraces + offset, (ushort)(captures - offset), callSiteMethodStartAddress, injectEndFuncStartAddress);
                     }
                 default:
                     throw new PlatformNotSupportedException();
