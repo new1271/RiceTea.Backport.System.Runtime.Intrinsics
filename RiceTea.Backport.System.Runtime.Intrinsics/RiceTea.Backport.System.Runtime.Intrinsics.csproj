@@ -9,11 +9,13 @@
 		<Platforms>AnyCPU;x64;x86</Platforms>
 		<AssemblyTitle>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyTitle>
 		<AssemblyName>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyName>
+		<AssemblyVersion>1.0.0</AssemblyVersion>
 		<Authors>RiceTea</Authors>
 		<PackageId>RiceTea.Backport.System.Runtime.Intrinsics</PackageId>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
 		<PackageReadmeFile>package_README.md</PackageReadmeFile>
+		<PackageVersion>1.0.1</PackageVersion>
 		<SignAssembly>True</SignAssembly>
 		<AssemblyOriginatorKeyFile>keypair.snk</AssemblyOriginatorKeyFile>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
