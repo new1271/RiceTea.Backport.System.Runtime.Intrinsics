@@ -1,7 +1,7 @@
-Provides APIs for accessing processor specific instructions. (backports to .NET Standard 2.0 by Rice Tea)<br/>
-<br/>
-Only implements those APIs that I may use<br/>
-<br/>
+Provides APIs for accessing processor specific instructions. (backports to .NET Standard 2.0 by Rice Tea)
+
+Only implements those APIs that I may use
+
 Provides those types and methods:
 - System.Runtime.Intrinsics.X86.Bmi1
   - TrailingZeroCount
