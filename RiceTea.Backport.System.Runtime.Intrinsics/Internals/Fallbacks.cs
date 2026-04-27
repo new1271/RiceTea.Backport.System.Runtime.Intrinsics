@@ -7,17 +7,17 @@ internal static partial class Fallbacks
 {
     private static readonly bool _isSystemMemoryExists = SoftDependencyHelper.SystemMemoryExists;
 
-    public static ulong TrailingZeroCountSoftwareFallback(ulong value)
+    public static ulong BitScanForwardSoftwareFallback(ulong value)
     {
         uint lo = (uint)value;
 
         if (lo == 0)
-            return 32 + TrailingZeroCountSoftwareFallback((uint)(value >> 32));
+            return 32 + BitScanForwardSoftwareFallback((uint)(value >> 32));
 
-        return TrailingZeroCountSoftwareFallback(lo);
+        return BitScanForwardSoftwareFallback(lo);
     }
 
-    public static uint TrailingZeroCountSoftwareFallback(uint value)
+    public static uint BitScanForwardSoftwareFallback(uint value)
     {
         if (_isSystemMemoryExists)
             return (uint)DeBruijn_StoreAsSpan.TrailingZeroCount(value);
@@ -30,15 +30,25 @@ internal static partial class Fallbacks
         uint hi = (uint)(value >> 32);
 
         if (hi == 0)
-            return 32 + (31 ^ Log2SoftwareFallback((uint)value));
+            return 32 + (31 ^ BitScanReverseSoftwareFallback((uint)value));
 
-        return 31 ^ Log2SoftwareFallback(hi);
+        return 31 ^ BitScanReverseSoftwareFallback(hi);
     }
 
     public static uint LeadingZeroCountSoftwareFallback(uint value)
-        => 31u ^ Log2SoftwareFallback(value);
+        => 31u ^ BitScanReverseSoftwareFallback(value);
 
-    internal static uint Log2SoftwareFallback(uint value)
+    internal static ulong BitScanReverseSoftwareFallback(ulong value)
+    {
+        uint hi = (uint)(value >> 32);
+
+        if (hi == 0)
+            return BitScanReverseSoftwareFallback((uint)value);
+
+        return 32 + BitScanReverseSoftwareFallback(hi);
+    }
+
+    internal static uint BitScanReverseSoftwareFallback(uint value)
     {
         if (_isSystemMemoryExists)
             return (uint)DeBruijn_StoreAsSpan.Log2(value);

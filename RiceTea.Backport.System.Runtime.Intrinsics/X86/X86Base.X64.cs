@@ -16,14 +16,14 @@ partial class X86Base
         ///   <para>  BSF reg reg/m64</para>
         ///   <para>The above native signature does not directly correspond to the managed signature.</para>
         /// </summary>
-        public static partial uint BitScanForward(ulong value);
+        public static partial ulong BitScanForward(ulong value);
 
         /// <summary>
         ///   <para>unsigned char _BitScanReverse64 (unsigned __int32* index, unsigned __int64 a)</para>
         ///   <para>  BSR reg reg/m64</para>
         ///   <para>The above native signature does not directly correspond to the managed signature.</para>
         /// </summary>
-        public static partial uint BitScanReverse(ulong value);
+        public static partial ulong BitScanReverse(ulong value);
 
         /// <summary>
         ///   <para>unsigned __int64 _udiv128(unsigned __int64 highdividend, unsigned __int64 lowdividend, unsigned __int64 divisor, unsigned __int64* remainder)</para>

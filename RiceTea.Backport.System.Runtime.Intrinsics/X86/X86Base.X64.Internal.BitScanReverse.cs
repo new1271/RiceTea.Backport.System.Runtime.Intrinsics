@@ -9,38 +9,30 @@ namespace System.Runtime.Intrinsics.X86;
 
 partial class X86Base
 {
-    partial class X64
+    unsafe partial class X64
     {
 #if ((X86_ARCH && B64_ARCH) || ANYCPU)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectBsrAsm()
+        private static void InjectBsrAsm(ref void* destination, ref uint length)
         {
 #if !B64_ARCH
             if (!Helpers.PlatformHelper.IsX64)
-                return;
+                throw new PlatformNotSupportedException();
 #endif
-            InjectBsrAsm_X64();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectBsrAsm_X64()
-        {
             if (SoftDependencyHelper.SystemMemoryExists)
-                StoreAsSpan.InjectBsrAsm_X64();
+                StoreAsSpan.InjectBsrAsm(ref destination, ref length);
             else 
-                StoreAsArray.InjectBsrAsm_X64();
+                StoreAsArray.InjectBsrAsm(ref destination, ref length);
         }
 
         partial class StoreAsArray
         {
             [MethodImpl(MethodImplOptions.NoInlining)]
-            public static void InjectBsrAsm_X64()
+            public static void InjectBsrAsm(ref void* destination, ref uint length)
             {
-                const int Length = 8;
+                const int Length = 4;
                 byte[] data = new byte[Length] {
-                    0x48, 0x0F, 0xBD, 0xC1,
-                    0xC3, 
-                    0xCC, 0xCC, 0xCC
+                    0x48, 0x0F, 0xBD, 0xC1
                 };
                 IL.Emit.Ldtoken(MethodRef.Method(typeof(X64), nameof(BitScanReverse)));
                 IL.Pop(out RuntimeMethodHandle method);
@@ -51,13 +43,11 @@ partial class X86Base
         partial class StoreAsSpan
         {
             [MethodImpl(MethodImplOptions.NoInlining)]
-            public static void InjectBsrAsm_X64()
+            public static void InjectBsrAsm(ref void* destination, ref uint length)
             {
-                const int Length = 8;
+                const int Length = 4;
                 ReadOnlySpan<byte> data = [
-                    0x48, 0x0F, 0xBD, 0xC1,
-                    0xC3, 
-                    0xCC, 0xCC, 0xCC
+                    0x48, 0x0F, 0xBD, 0xC1
                 ];
                 IL.Emit.Ldtoken(MethodRef.Method(typeof(X64), nameof(BitScanReverse)));
                 IL.Pop(out RuntimeMethodHandle method);
@@ -66,7 +56,7 @@ partial class X86Base
         }
 #else
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectBsrAsm() {}
+        private static void InjectBsrAsm(ref void* destination, ref uint length) => throw new PlatformNotSupportedException();
 #endif
     }
 }

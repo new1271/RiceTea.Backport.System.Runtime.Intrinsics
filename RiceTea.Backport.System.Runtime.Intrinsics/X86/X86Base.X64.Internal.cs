@@ -2,12 +2,16 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
+using System.Runtime.Intrinsics.Internals;
+using System.Threading;
+
+using InlineIL;
 
 namespace System.Runtime.Intrinsics.X86;
 
 partial class X86Base
 {
-    partial class X64
+    unsafe partial class X64
     {
         private static readonly bool _isSupported;
 
@@ -22,38 +26,144 @@ partial class X86Base
 
         [DebuggerHidden]
         [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-        public static partial uint BitScanForward(ulong value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
+        public static partial ulong BitScanForward(ulong value)
         {
             if (!_isSupported)
                 throw new PlatformNotSupportedException();
 
-            InjectBsfAsm();
+            BitScanForward_InjectStart(value);
+            return BitScanForward_InjectEnd(Fallbacks.BitScanForwardSoftwareFallback(value));
+        }
 
-            uint lo = (uint)value;
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+        private static void BitScanForward_InjectStart(ulong value)
+        {
+            CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+            BitScanForward_EnterLock();
+        }
 
-            if (lo == 0)
-                return 32 + (uint)Fallbacks.TrailingZeroCountSoftwareFallback((uint)(value >> 32));
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static ulong BitScanForward_InjectEnd(ulong value)
+        {
+            try
+            {
+                byte* endAddress = (byte*)CallSiteInjector.FindCallSite();
+                byte* startAddress = (byte*)CallSiteInjector.StartAddress; // InjectStart() 的下一個位址
 
-            return (uint)Fallbacks.TrailingZeroCountSoftwareFallback(lo);
+                uint length = (uint)(endAddress - startAddress);
+                AsmCodeHelper.LetMemoryPageCanRWX(startAddress, length);
+
+                IL.Emit.Ldtoken(new MethodRef(typeof(X86Base), nameof(BitScanForward_ExitLock)));
+                IL.Pop(out RuntimeMethodHandle handle);
+                // 無須提前編譯和解析跳轉，此處傳回的會是 JIT Trampoline 位址，JIT 會在那個位址內決定是否需要編譯
+                CallSiteInjector.InjectCallInstruction(startAddress, (void*)handle.GetFunctionPointer());
+
+                byte* offsetedStartAddress = startAddress + CallSiteInjector.CallInstructionSize;
+                void* injectAddress = startAddress;
+                uint injectLength = length - CallSiteInjector.CallInstructionSize;
+                InjectBsfAsm(ref injectAddress, ref injectLength); // 此處傳入可注入之位址和長度，傳出已注入之位址和注入長度
+
+                CallSiteInjector.FillNopInstructions(offsetedStartAddress, (uint)((byte*)injectAddress - offsetedStartAddress));
+                byte* injectEndAddress = (byte*)injectAddress + injectLength;
+                CallSiteInjector.FillNopInstructions(injectEndAddress, (uint)(endAddress - injectEndAddress));
+
+                CallSiteInjector.InjectJumpInstruction(startAddress - CallSiteInjector.JumpInstructionSize, injectAddress); // 建立跳轉
+
+                AsmCodeHelper.FlushInstructionCache(startAddress, length);
+
+                return value;
+            }
+            finally
+            {
+                BitScanForward_ExitLock();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BitScanForward_EnterLock() => Monitor.Enter(_bsfLock!);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BitScanForward_ExitLock()
+        {
+            try
+            {
+                Monitor.Exit(_bsfLock!);
+            }
+            catch (SynchronizationLockException)
+            {
+            }
         }
 
         [DebuggerHidden]
         [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-        public static partial uint BitScanReverse(ulong value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
+        public static partial ulong BitScanReverse(ulong value)
         {
             if (!_isSupported)
                 throw new PlatformNotSupportedException();
 
-            InjectBsrAsm();
+            BitScanReverse_InjectStart(value);
+            return BitScanReverse_InjectEnd(Fallbacks.BitScanReverseSoftwareFallback(value));
+        }
 
-            uint hi = (uint)(value >> 32);
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+        private static void BitScanReverse_InjectStart(ulong value)
+        {
+            CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+            BitScanReverse_EnterLock();
+        }
 
-            if (hi == 0)
-                return (uint)Fallbacks.Log2SoftwareFallback((uint)value);
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static ulong BitScanReverse_InjectEnd(ulong value)
+        {
+            try
+            {
+                byte* endAddress = (byte*)CallSiteInjector.FindCallSite();
+                byte* startAddress = (byte*)CallSiteInjector.StartAddress; // InjectStart() 的下一個位址
 
-            return 32 + (uint)Fallbacks.Log2SoftwareFallback(hi);
+                uint length = (uint)(endAddress - startAddress);
+                AsmCodeHelper.LetMemoryPageCanRWX(startAddress, length);
+
+                IL.Emit.Ldtoken(new MethodRef(typeof(X86Base), nameof(BitScanReverse_ExitLock)));
+                IL.Pop(out RuntimeMethodHandle handle);
+                // 無須提前編譯和解析跳轉，此處傳回的會是 JIT Trampoline 位址，JIT 會在那個位址內決定是否需要編譯
+                CallSiteInjector.InjectCallInstruction(startAddress, (void*)handle.GetFunctionPointer());
+
+                byte* offsetedStartAddress = startAddress + CallSiteInjector.CallInstructionSize;
+                void* injectAddress = startAddress;
+                uint injectLength = length - CallSiteInjector.CallInstructionSize;
+                InjectBsrAsm(ref injectAddress, ref injectLength); // 此處傳入可注入之位址和長度，傳出已注入之位址和注入長度
+
+                CallSiteInjector.FillNopInstructions(offsetedStartAddress, (uint)((byte*)injectAddress - offsetedStartAddress));
+                byte* injectEndAddress = (byte*)injectAddress + injectLength;
+                CallSiteInjector.FillNopInstructions(injectEndAddress, (uint)(endAddress - injectEndAddress));
+
+                CallSiteInjector.InjectJumpInstruction(startAddress - CallSiteInjector.JumpInstructionSize, injectAddress); // 建立跳轉
+
+                AsmCodeHelper.FlushInstructionCache(startAddress, length);
+
+                return value;
+            }
+            finally
+            {
+                BitScanReverse_ExitLock();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BitScanReverse_EnterLock() => Monitor.Enter(_bsrLock!);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void BitScanReverse_ExitLock()
+        {
+            try
+            {
+                Monitor.Exit(_bsrLock!);
+            }
+            catch (SynchronizationLockException)
+            {
+            }
         }
 
         [DebuggerHidden]

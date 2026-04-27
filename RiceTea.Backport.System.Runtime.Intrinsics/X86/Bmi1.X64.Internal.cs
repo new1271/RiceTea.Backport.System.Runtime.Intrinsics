@@ -53,7 +53,7 @@ partial class Bmi1
                 throw new PlatformNotSupportedException();
 
             TrailingZeroCount_InjectStart(value);
-            return TrailingZeroCount_InjectEnd(Fallbacks.TrailingZeroCountSoftwareFallback(value));
+            return TrailingZeroCount_InjectEnd(Fallbacks.BitScanForwardSoftwareFallback(value));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
