@@ -4,32 +4,18 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Helpers;
 using System.Security;
-using System.Text.RegularExpressions;
-
-using InlineIL;
 
 namespace System.Runtime.Intrinsics.Internals
 {
     internal static unsafe class CallSiteInjector
     {
+        public const int CallInstructionSize = 5;
+        public const int JumpInstructionSize = 5;
+
         private static readonly PlatformID _platformId = Environment.OSVersion.Platform;
 
         [ThreadStatic]
-        private static void* _startAddress;
-
-        public static void* InjectStartAddress => _startAddress;
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void InjectStart<T>(T arg)
-        {
-            _startAddress = (byte*)FindCallSite() - 5; // 暫時為硬編碼 (現在只支援 x86 Instructions)
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void InjectStart<T1, T2>(T1 arg1, T2 arg2)
-        {
-            _startAddress = (byte*)FindCallSite() - 5; // 暫時為硬編碼 (現在只支援 x86 Instructions)
-        }
+        public static void* StartAddress;
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void* FindCallSite()
@@ -130,14 +116,23 @@ namespace System.Runtime.Intrinsics.Internals
             switch (*(byte*)ptr)
             {
                 case 0xE8:
+                    {
+                        int offset = *(int*)((byte*)ptr + 1);
+                        result = (byte*)ptr + CallInstructionSize + offset;
+                        return true;
+                    }
                 case 0xE9:
-                    int offset = *(int*)((byte*)ptr + 1);
-                    result = (byte*)ptr + 5 + offset;
-                    return true;
+                    {
+                        int offset = *(int*)((byte*)ptr + 1);
+                        result = (byte*)ptr + JumpInstructionSize + offset;
+                        return true;
+                    }
                 case 0xEB:
-                    sbyte shortOffset = *(sbyte*)((byte*)ptr + 1);
-                    result = (byte*)ptr + 2 + shortOffset;
-                    return true;
+                    {
+                        sbyte shortOffset = *(sbyte*)((byte*)ptr + 1);
+                        result = (byte*)ptr + 2 + shortOffset;
+                        return true;
+                    }
                 default:
                     result = ptr;
                     return false;
@@ -145,11 +140,110 @@ namespace System.Runtime.Intrinsics.Internals
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void InjectJumpInstructionAndNopSequence(void* ptr, uint jumpOffset)
+        public static void InjectCallInstruction(void* ptr, void* target)
+        {
+            *(byte*)ptr = 0xE8;
+            *(int*)((byte*)ptr + 1) = (int)((byte*)target - (byte*)ptr) - CallInstructionSize;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void InjectJumpInstruction(void* ptr, void* target)
         {
             *(byte*)ptr = 0xE9;
-            *(uint*)((byte*)ptr + 1) = jumpOffset - 5;
-            UnsafeHelper.InitBlock(((byte*)ptr) + 5, 0x90, jumpOffset - 5);
+            *(int*)((byte*)ptr + 1) = (int)((byte*)target - (byte*)ptr) - JumpInstructionSize;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void FillNopInstructions(void* ptr, uint length)
+        {
+            if (length > 9)
+                FillNopInstruction_Long(ptr, length);
+            else
+                FillNopInstruction_Short(ptr, length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FillNopInstruction_Long(void* ptr, uint length)
+        {
+            UnsafeHelper.InitBlock(ptr, 0, length);
+            byte* castedPtr = (byte*)ptr;
+            do
+            {
+                *(uint*)castedPtr = 0x84_1F_0F_66; // nop_9: 66 0F 1F 84 00 00 00 00 00
+                castedPtr += 9;
+                length -= 9;
+            } while (length >= 9);
+            switch (length)
+            {
+                case 8:
+                    *(uint*)castedPtr = 0x84_1F_0F; // nop_8: 0F 1F 84 00 00 00 00 00
+                    break;
+                case 7:
+                    *(uint*)castedPtr = 0x80_1F_0F; // nop_7: 0F 1F 80 00 00 00 00
+                    break;
+                case 6:
+                    *(uint*)castedPtr = 0x44_1F_0F_66; // nop_6: 66 0F 1F 44 00 00
+                    break;
+                case 5:
+                    *(uint*)castedPtr = 0x44_1F_0F; // nop_5: 0F 1F 44 00 00
+                    break;
+                case 4:
+                    *(uint*)castedPtr = 0x40_1F_0F; // nop_4: 0F 1F 40 00
+                    break;
+                case 3:
+                    *(ushort*)castedPtr = 0x1F_0F; // nop_3: 0F 1F 00
+                    break;
+                case 2:
+                    *(ushort*)castedPtr = 0x90_66; // nop_2: 66 90
+                    break;
+                case 1:
+                    *castedPtr = 0x90; // nop_1: 90
+                    break;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void FillNopInstruction_Short(void* ptr, uint length)
+        {
+            byte* castedPtr = (byte*)ptr;
+            switch (length)
+            {
+                case 9:  // nop_9: 66 0F 1F 84 00 00 00 00 00
+                    *(uint*)castedPtr = 0x84_1F_0F_66;
+                    *(uint*)(castedPtr + 4) = 0; 
+                    *(castedPtr + 8) = 0; 
+                    break;
+                case 8:  // nop_8: 0F 1F 84 00 00 00 00 00
+                    *(uint*)castedPtr = 0x84_1F_0F;
+                    *(uint*)(castedPtr + 4) = 0; 
+                    break;
+                case 7: // nop_7: 0F 1F 80 00 00 00 00
+                    *(uint*)castedPtr = 0x80_1F_0F; 
+                    *(ushort*)(castedPtr + 4) = 0;
+                    *(castedPtr + 6) = 0;
+                    break;
+                case 6: // nop_6: 66 0F 1F 44 00 00
+                    *(uint*)castedPtr = 0x44_1F_0F_66;
+                    *(ushort*)(castedPtr + 4) = 0;
+                    break;
+                case 5: // nop_5: 0F 1F 44 00 00
+                    *(uint*)castedPtr = 0x44_1F_0F;
+                    *(castedPtr + 4) = 0;
+                    break;
+                case 4:
+                    *(uint*)castedPtr = 0x40_1F_0F; // nop_4: 0F 1F 40 00
+                    break;
+                case 3:
+                    *(ushort*)castedPtr = 0x1F_0F; // nop_3: 0F 1F 00
+                    *(castedPtr + 2) = 0;
+                    break;
+                case 2:
+                    *(ushort*)castedPtr = 0x90_66; // nop_2: 66 90
+                    break;
+                case 1:
+                    *castedPtr = 0x90; // nop_1: 90
+                    break;
+            }
         }
 
         [SuppressUnmanagedCodeSecurity]
