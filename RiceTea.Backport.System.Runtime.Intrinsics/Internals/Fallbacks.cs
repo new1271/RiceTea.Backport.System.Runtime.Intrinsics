@@ -1,4 +1,5 @@
 #if !NETSTANDARD2_1_OR_GREATER
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
 
@@ -90,6 +91,28 @@ internal static partial class Fallbacks
         value = (((value + (value >> 4)) & c3) * c4) >> 56;
 
         return (uint)value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int DivRem(int upper, uint lower, int divisor, out int remainder)
+    {
+        long dividend = ((long)upper) << 32 | lower;
+        remainder = (int)(dividend % divisor);
+        return (int)(dividend / divisor);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long DivRem(long upper, ulong lower, long divisor, out long remainder)
+    {
+        if ((upper == 0 && (lower & unchecked((ulong)long.MinValue)) == 0) || (upper == -1 && (lower & unchecked((ulong)long.MinValue)) != 0))
+        {
+            remainder = (long)lower % divisor;
+            return (long)lower / divisor;
+        }
+
+        BigInteger dividend = new BigInteger(upper) << 64 | new BigInteger(lower);
+        remainder = (long)dividend % divisor;
+        return (long)(dividend / divisor);
     }
 }
 #endif
