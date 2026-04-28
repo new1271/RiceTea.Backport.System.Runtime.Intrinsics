@@ -33,7 +33,7 @@ partial class X86Base
                 throw new PlatformNotSupportedException();
 
             BitScanForward_InjectStart(value);
-            return BitScanForward_InjectEnd(Fallbacks.BitScanForwardSoftwareFallback(value));
+            return BitScanForward_InjectEnd(Fallbacks.BitScanForward(value));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
@@ -104,7 +104,7 @@ partial class X86Base
                 throw new PlatformNotSupportedException();
 
             BitScanReverse_InjectStart(value);
-            return BitScanReverse_InjectEnd(Fallbacks.BitScanReverseSoftwareFallback(value));
+            return BitScanReverse_InjectEnd(Fallbacks.BitScanReverse(value));
         }
 
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞

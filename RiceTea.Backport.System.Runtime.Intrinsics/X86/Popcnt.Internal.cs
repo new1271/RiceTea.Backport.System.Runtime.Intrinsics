@@ -52,7 +52,7 @@ partial class Popcnt
             throw new PlatformNotSupportedException();
 
         PopCount_InjectStart(value);
-        return PopCount_InjectEnd(Fallbacks.PopCountSoftwareFallback(value));
+        return PopCount_InjectEnd(Fallbacks.PopCount(value));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞

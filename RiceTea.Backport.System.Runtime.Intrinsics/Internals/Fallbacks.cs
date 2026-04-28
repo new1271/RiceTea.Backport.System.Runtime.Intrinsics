@@ -1,4 +1,5 @@
 #if !NETSTANDARD2_1_OR_GREATER
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
 
 namespace System.Runtime.Intrinsics;
@@ -7,17 +8,18 @@ internal static partial class Fallbacks
 {
     private static readonly bool _isSystemMemoryExists = SoftDependencyHelper.SystemMemoryExists;
 
-    public static ulong BitScanForwardSoftwareFallback(ulong value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong BitScanForward(ulong value)
     {
         uint lo = (uint)value;
 
         if (lo == 0)
-            return 32 + BitScanForwardSoftwareFallback((uint)(value >> 32));
+            return 32 + BitScanForward((uint)(value >> 32));
 
-        return BitScanForwardSoftwareFallback(lo);
+        return BitScanForward(lo);
     }
 
-    public static uint BitScanForwardSoftwareFallback(uint value)
+    public static uint BitScanForward(uint value)
     {
         if (_isSystemMemoryExists)
             return (uint)DeBruijn_StoreAsSpan.TrailingZeroCount(value);
@@ -25,30 +27,19 @@ internal static partial class Fallbacks
             return (uint)DeBruijn_StoreAsArray.TrailingZeroCount(value);
     }
 
-    public static ulong LeadingZeroCountSoftwareFallback(ulong value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong BitScanReverse(ulong value)
     {
         uint hi = (uint)(value >> 32);
 
         if (hi == 0)
-            return 32 + (31 ^ BitScanReverseSoftwareFallback((uint)value));
+            return BitScanReverse((uint)value);
 
-        return 31 ^ BitScanReverseSoftwareFallback(hi);
+        return 32 + BitScanReverse(hi);
     }
 
-    public static uint LeadingZeroCountSoftwareFallback(uint value)
-        => 31u ^ BitScanReverseSoftwareFallback(value);
-
-    internal static ulong BitScanReverseSoftwareFallback(ulong value)
-    {
-        uint hi = (uint)(value >> 32);
-
-        if (hi == 0)
-            return BitScanReverseSoftwareFallback((uint)value);
-
-        return 32 + BitScanReverseSoftwareFallback(hi);
-    }
-
-    internal static uint BitScanReverseSoftwareFallback(uint value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint BitScanReverse(uint value)
     {
         if (_isSystemMemoryExists)
             return (uint)DeBruijn_StoreAsSpan.Log2(value);
@@ -56,7 +47,23 @@ internal static partial class Fallbacks
             return (uint)DeBruijn_StoreAsArray.Log2(value);
     }
 
-    internal static uint PopCountSoftwareFallback(uint value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong LeadingZeroCount(ulong value)
+    {
+        uint hi = (uint)(value >> 32);
+
+        if (hi == 0)
+            return 32 + (31 ^ BitScanReverse((uint)value));
+
+        return 31 ^ BitScanReverse(hi);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint LeadingZeroCount(uint value)
+        => 31u ^ BitScanReverse(value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint PopCount(uint value)
     {
         const uint c1 = 0x_55555555u;
         const uint c2 = 0x_33333333u;
@@ -70,7 +77,8 @@ internal static partial class Fallbacks
         return value;
     }
 
-    internal static ulong PopCountSoftwareFallback(ulong value)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong PopCount(ulong value)
     {
         const ulong c1 = 0x_55555555_55555555ul;
         const ulong c2 = 0x_33333333_33333333ul;

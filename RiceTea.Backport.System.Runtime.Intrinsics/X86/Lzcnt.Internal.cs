@@ -51,7 +51,7 @@ partial class Lzcnt
             throw new PlatformNotSupportedException();
 
         LeadingZeroCount_InjectStart(value);
-        return LeadingZeroCount_InjectEnd(Fallbacks.LeadingZeroCountSoftwareFallback(value));
+        return LeadingZeroCount_InjectEnd(Fallbacks.LeadingZeroCount(value));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
