@@ -8,19 +8,8 @@ namespace System.Runtime.Intrinsics.X86;
 unsafe partial class X86Base
 {
 #if (X86_ARCH || ANYCPU)
-    /*
-     * extern "C"
-     *
-     * using int32 = __int32;
-     * using int64 = __int64;
-     * 
-     * int32 __cdecl div64_wrapper(int64 dividend, int32 divisor, int32* remainder)
-     * {
-     *     return _div64(dividend, divisor, remainder);
-     * }
-     */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void* BuildDiv64Asm()
+    private static void* JnjectIDivAsm()
     {
 #if B64_ARCH
         return BuildDiv64Asm_X64();
@@ -41,14 +30,14 @@ unsafe partial class X86Base
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void* BuildDiv64Asm_X86()
         {
-            const int Length = 21;
+            const int Length = 16;
             byte[] data = new byte[Length] {
-                0x8B, 0x44, 0x24, 0x04, 
-                0x8B, 0x54, 0x24, 0x08, 
-                0xF7, 0x7C, 0x24, 0x0C, 
-                0x8B, 0x4C, 0x24, 0x10, 
-                0x89, 0x11, 0xC2, 0x00, 
-                0x00
+                0x89, 0xD0, 
+                0x89, 0xCA, 
+                0x8B, 0x4C, 0x24, 0x04, 
+                0xF7, 0x3C, 0x24, 
+                0x89, 0x11, 
+                0x83, 0xC4, 0x08
             };
             return AsmCodeHelper.PackAsmCodeIntoNativeMemory(data, Length);
         }
@@ -59,14 +48,14 @@ unsafe partial class X86Base
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void* BuildDiv64Asm_X86()
         {
-            const int Length = 21;
+            const int Length = 16;
             ReadOnlySpan<byte> data = [
-                0x8B, 0x44, 0x24, 0x04,
-                0x8B, 0x54, 0x24, 0x08,
-                0xF7, 0x7C, 0x24, 0x0C,
-                0x8B, 0x4C, 0x24, 0x10,
-                0x89, 0x11, 0xC2, 0x00,
-                0x00
+                0x89, 0xD0,
+                0x89, 0xCA,
+                0x8B, 0x4C, 0x24, 0x04,
+                0xF7, 0x3C, 0x24,
+                0x89, 0x11,
+                0x83, 0xC4, 0x08
             ];
             return AsmCodeHelper.PackAsmCodeIntoNativeMemory(data, Length);
         }
