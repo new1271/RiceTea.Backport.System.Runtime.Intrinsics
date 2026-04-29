@@ -41,12 +41,6 @@ public abstract partial class X86Base
     /// </summary>
     public static partial uint BitScanReverse(uint value);
 
-    /// <summary>  IDIV reg/m</summary>
-    public static partial (int Quotient, int Remainder) DivRem(long dividend, int divisor);
-
-    /// <summary>  DIV reg/m</summary>
-    public static partial (uint Quotient, uint Remainder) DivRem(ulong dividend, uint divisor);
-
     /// <summary>
     ///   <para>unsigned _udiv64(unsigned __int64 dividend, unsigned divisor, unsigned* remainder)</para>
     ///   <para>  DIV reg/m32</para>

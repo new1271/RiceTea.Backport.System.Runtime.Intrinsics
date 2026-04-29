@@ -1,4 +1,5 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if X86_ARCH || ANYCPU
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
@@ -105,4 +106,5 @@ partial class Bmi1
 
     private abstract partial class StoreAsSpan : AssemblyCodeStoreBase { }
 }
+#endif
 #endif

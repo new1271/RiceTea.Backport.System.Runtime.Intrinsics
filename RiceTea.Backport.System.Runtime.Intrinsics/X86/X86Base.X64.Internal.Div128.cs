@@ -1,4 +1,5 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if (X86_ARCH && B64_ARCH) || ANYCPU
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
 using System.Runtime.Intrinsics.Internals;
@@ -11,11 +12,10 @@ partial class X86Base
 {
     partial class X64
     {
-#if ((X86_ARCH && B64_ARCH) || ANYCPU)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectDiv128Asm()
         {
-#if !B64_ARCH
+#if ANYCPU
             if (!Helpers.PlatformHelper.IsX64)
                 return;
 #endif
@@ -72,10 +72,7 @@ partial class X86Base
                 AsmCodeHelper.InjectAsmCode(method, data, Length);
             }
         }
-#else
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDiv128Asm() {}
-#endif
     }
 }
+#endif
 #endif

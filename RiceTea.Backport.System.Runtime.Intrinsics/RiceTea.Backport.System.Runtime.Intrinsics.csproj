@@ -6,7 +6,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Nullable>enable</Nullable>
 		<LangVersion>14.0</LangVersion>
-		<Platforms>AnyCPU;x64;x86</Platforms>
+		<Platforms>AnyCPU;x64;x86;ARM64</Platforms>
 		<AssemblyTitle>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyTitle>
 		<AssemblyName>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyName>
 		<AssemblyVersion>1.0.0</AssemblyVersion>
@@ -87,14 +87,6 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Platform)'=='AnyCPU'">
-		<DefineConstants>$(DefineConstants);ANYCPU</DefineConstants>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Platform)'=='x86'">
-		<DefineConstants>$(DefineConstants);ANYCPU</DefineConstants>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Platform)'=='x64'">
 		<DefineConstants>$(DefineConstants);ANYCPU</DefineConstants>
 	</PropertyGroup>
 

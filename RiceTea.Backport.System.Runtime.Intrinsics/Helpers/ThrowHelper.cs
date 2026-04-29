@@ -11,5 +11,11 @@ namespace System.Runtime.Intrinsics.Helpers
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void ThrowPlatformNotSupported() => throw new PlatformNotSupportedException();
+
+        [DoesNotReturn]
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static T ThrowPlatformNotSupported<T>() => throw new PlatformNotSupportedException();
     }
 }

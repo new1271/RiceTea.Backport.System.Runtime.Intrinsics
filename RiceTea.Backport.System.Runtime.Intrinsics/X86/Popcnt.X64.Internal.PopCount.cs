@@ -1,9 +1,7 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if (X86_ARCH && B64_ARCH) || ANYCPU
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
-using System.Runtime.Intrinsics.Internals;
-
-using InlineIL;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -11,11 +9,10 @@ partial class Popcnt
 {
 	unsafe partial class X64
 	{
-#if ((X86_ARCH && B64_ARCH) || ANYCPU)
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static void InjectPopcntAsm(ref void* destination, ref uint length)
 		{
-#if !B64_ARCH
+#if ANYCPU
             if (!PlatformHelper.IsX64)
                 throw new PlatformNotSupportedException();
 #endif
@@ -108,10 +105,7 @@ partial class Popcnt
 				length = Length;
 			}
 		}
-#else
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectPopcntAsm(ref void* destination, ref uint length) => throw new PlatformNotSupportedException();
-#endif
 	}
 }
+#endif
 #endif

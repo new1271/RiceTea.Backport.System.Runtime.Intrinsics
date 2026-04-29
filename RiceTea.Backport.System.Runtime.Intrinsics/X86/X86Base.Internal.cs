@@ -1,4 +1,5 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if X86_ARCH || ANYCPU
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -14,8 +15,8 @@ namespace System.Runtime.Intrinsics.X86;
 [SuppressUnmanagedCodeSecurity]
 unsafe partial class X86Base
 {
-	private static readonly object? _bsfLock, _bsrLock;
-	private static readonly void* _cpuIdAsm, _div64Asm, _udiv64Asm;
+	private static readonly object? _bsfLock, _bsrLock, _idivLock, _divLock;
+	private static readonly void* _cpuIdAsm;
 	private static readonly bool _isSupported;
 
 	static X86Base()
@@ -23,26 +24,29 @@ unsafe partial class X86Base
 		if (PlatformHelper.IsX86)
 		{
 			_isSupported = true;
-			_cpuIdAsm = BuildCpuIdAsm();
-			_div64Asm = BuildDiv64Asm();
-			_udiv64Asm = BuildUDiv64Asm();
 			_bsfLock = new object();
 			_bsrLock = new object();
+            _idivLock = new object();
+            _divLock = new object();
 		}
 		else
 		{
 			_isSupported = false;
 			_cpuIdAsm = null;
-			_div64Asm = null;
-			_udiv64Asm = null;
 			_bsfLock = null;
 			_bsrLock = null;
+            _idivLock = null;
+            _divLock = null;
 		}
 	}
 
-	public static partial bool IsSupported => _isSupported;
+	public static partial bool IsSupported
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _isSupported;
+    }
 
-	[LocalsInit(false)]
+    [LocalsInit(false)]
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static partial (int Eax, int Ebx, int Ecx, int Edx) CpuId(int functionId, int subFunctionId)
 	{
@@ -170,37 +174,135 @@ unsafe partial class X86Base
 		}
 	}
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static partial (int Quotient, int Remainder) DivRem(long dividend, int divisor)
-	{
+	[DebuggerHidden]
+	[DebuggerStepThrough]
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
+	private static int DivRem(uint lower, int upper, int divisor, out int rem)
+    {
 		if (!_isSupported)
 			ThrowUtils.ThrowPlatformNotSupported();
 
-		int remainder;
-		int quotient = ((delegate* unmanaged[Cdecl]<long, int, int*, int>)_div64Asm)(dividend, divisor, &remainder);
-		return (quotient, remainder);
+		InjectStart(lower, upper, divisor, out rem);
+		return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
+
+		[DebuggerHidden]
+		[DebuggerStepThrough]
+		[MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+		static void InjectStart(uint lower, int upper, int divisor, out int rem)
+        {
+			rem = 0;
+			CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+			EnterLock();
+		}
+
+		[DebuggerHidden]
+		[DebuggerStepThrough]
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		static int InjectEnd(int value)
+		{
+			try
+			{
+				CallSiteInjector.InjectAsm(
+					startAddress: CallSiteInjector.StartAddress,
+					endAddress: CallSiteInjector.FindCallSite(),
+					injectorFunc: &InjectIDivAsm,
+					exitLockFunc: &ExitLock);
+				return value;
+			}
+			finally
+			{
+				ExitLock();
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static void EnterLock() => Monitor.Enter(_idivLock!);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static void ExitLock()
+		{
+			try
+			{
+				Monitor.Exit(_idivLock!);
+			}
+			catch (SynchronizationLockException)
+			{
+			}
+		}
 	}
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static partial (uint Quotient, uint Remainder) DivRem(ulong dividend, uint divisor)
-	{
+	[DebuggerHidden]
+	[DebuggerStepThrough]
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
+	private static uint DivRem(uint lower, uint upper, uint divisor, out uint rem)
+    {
 		if (!_isSupported)
 			ThrowUtils.ThrowPlatformNotSupported();
 
-		uint remainder;
-		uint quotient = ((delegate* unmanaged[Cdecl]<ulong, uint, uint*, uint>)_udiv64Asm)(dividend, divisor, &remainder);
-		return (quotient, remainder);
+		InjectStart(lower, upper, divisor, out rem);
+		return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
+
+		[DebuggerHidden]
+		[DebuggerStepThrough]
+		[MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+		static void InjectStart(uint lower, uint upper, uint divisor, out uint rem)
+        {
+			rem = 0;
+			CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+			EnterLock();
+		}
+
+		[DebuggerHidden]
+		[DebuggerStepThrough]
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		static uint InjectEnd(uint value)
+		{
+			try
+			{
+				CallSiteInjector.InjectAsm(
+					startAddress: CallSiteInjector.StartAddress,
+					endAddress: CallSiteInjector.FindCallSite(),
+					injectorFunc: &InjectDivAsm,
+					exitLockFunc: &ExitLock);
+				return value;
+			}
+			finally
+			{
+				ExitLock();
+			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static void EnterLock() => Monitor.Enter(_divLock!);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		static void ExitLock()
+		{
+			try
+			{
+				Monitor.Exit(_divLock!);
+			}
+			catch (SynchronizationLockException)
+			{
+			}
+		}
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static partial (int Quotient, int Remainder) DivRem(uint lower, int upper, int divisor)
-		=> DivRem(unchecked((long)((ulong)upper << 32 | lower)), divisor);
+	{
+		int quotient = DivRem(lower, upper, divisor, out int remainder);
+		return (quotient, remainder);
+	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static partial (uint Quotient, uint Remainder) DivRem(uint lower, uint upper, uint divisor)
-		=> DivRem(unchecked((ulong)upper << 32 | lower), divisor);
+    {
+        uint quotient = DivRem(lower, upper, divisor, out uint remainder);
+        return (quotient, remainder);
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public static partial (nint Quotient, nint Remainder) DivRem(nuint lower, nint upper, nint divisor)
 		=> UnsafeHelper.PointerSizeConstant switch
 		{
@@ -241,4 +343,5 @@ unsafe partial class X86Base
 			=> $"{{EAX = {_eax}, EBX = {_ebx}, ECX = {_ecx}, EDX = {_edx}}}";
 	}
 }
+#endif
 #endif

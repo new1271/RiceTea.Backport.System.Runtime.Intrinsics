@@ -1,9 +1,7 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if (X86_ARCH && B64_ARCH) || ANYCPU
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
-using System.Runtime.Intrinsics.Internals;
-
-using InlineIL;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -11,11 +9,10 @@ partial class X86Base
 {
 	unsafe partial class X64
 	{
-#if ((X86_ARCH && B64_ARCH) || ANYCPU)
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static void InjectBsfAsm(ref void* destination, ref uint length)
 		{
-#if !B64_ARCH
+#if ANYCPU
             if (!Helpers.PlatformHelper.IsX64)
                 ThrowUtils.ThrowPlatformNotSupported();
 #endif
@@ -108,10 +105,7 @@ partial class X86Base
 				length = Length;
 			}
 		}
-#else
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectBsfAsm(ref void* destination, ref uint length) => ThrowUtils.ThrowPlatformNotSupported();
-#endif
 	}
 }
+#endif
 #endif

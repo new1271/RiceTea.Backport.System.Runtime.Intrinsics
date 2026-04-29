@@ -1,4 +1,6 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if X86_ARCH || ANYCPU
+
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
 
@@ -6,7 +8,6 @@ namespace System.Runtime.Intrinsics.X86;
 
 unsafe partial class Bmi1
 {
-#if (X86_ARCH || ANYCPU)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InjectTzcntAsm(ref void* destination, ref uint length)
     {
@@ -23,10 +24,16 @@ unsafe partial class Bmi1
         {
             if (IsUnix)
             {
+#if B64_ARCH
+                InjectTzcntAsm_Unix_X64(ref destination, ref length);
+#elif B32_ARCH
+                InjectTzcntAsm_Unix_X86(ref destination, ref length);
+#else
                 if (IsX64)
                     InjectTzcntAsm_Unix_X64(ref destination, ref length);
                 else
                     InjectTzcntAsm_Unix_X86(ref destination, ref length);
+#endif
             }
             else
                 InjectTzcntAsm_Windows(ref destination, ref length);
@@ -48,6 +55,7 @@ unsafe partial class Bmi1
             length = Length;
         }
 
+#if B32_ARCH || ANYCPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectTzcntAsm_Unix_X86(ref void* destination, ref uint length)
         {
@@ -63,7 +71,9 @@ unsafe partial class Bmi1
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
+#endif
 
+#if B64_ARCH || ANYCPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectTzcntAsm_Unix_X64(ref void* destination, ref uint length)
         {
@@ -79,6 +89,7 @@ unsafe partial class Bmi1
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
+#endif
     }
 
     partial class StoreAsSpan
@@ -88,10 +99,16 @@ unsafe partial class Bmi1
         {
             if (IsUnix)
             {
+#if B64_ARCH
+                InjectTzcntAsm_Unix_X64(ref destination, ref length);
+#elif B32_ARCH
+                InjectTzcntAsm_Unix_X86(ref destination, ref length);
+#else
                 if (IsX64)
                     InjectTzcntAsm_Unix_X64(ref destination, ref length);
                 else
                     InjectTzcntAsm_Unix_X86(ref destination, ref length);
+#endif
             }
             else
                 InjectTzcntAsm_Windows(ref destination, ref length);
@@ -112,7 +129,8 @@ unsafe partial class Bmi1
             length = Length;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#if B32_ARCH || ANYCPU
+       [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectTzcntAsm_Unix_X86(ref void* destination, ref uint length)
         {
             const int Length = 6;
@@ -126,7 +144,9 @@ unsafe partial class Bmi1
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
+#endif
 
+#if B64_ARCH || ANYCPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectTzcntAsm_Unix_X64(ref void* destination, ref uint length)
         {
@@ -141,11 +161,8 @@ unsafe partial class Bmi1
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
-    }
-
-#else
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InjectTzcntAsm(ref void* destination, ref uint length) => throw new PlatformNotSupportedException();
 #endif
+    }
 }
+#endif
 #endif

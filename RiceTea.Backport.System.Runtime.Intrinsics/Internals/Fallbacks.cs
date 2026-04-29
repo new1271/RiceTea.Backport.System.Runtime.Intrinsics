@@ -95,7 +95,7 @@ internal static partial class Fallbacks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int DivRem(int upper, uint lower, int divisor, out int remainder)
+    public static int DivRem(uint lower, int upper, int divisor, out int remainder)
     {
         if (divisor == 0)
         {
@@ -121,13 +121,30 @@ internal static partial class Fallbacks
         return ((int)lower) / divisor;
 
     LongOperation:
-        return DivRem_Long(upper, lower, divisor, out remainder);
+        return DivRem_Long(lower, upper, divisor, out remainder);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static long DivRem(long upper, ulong lower, long divisor, out long remainder)
+    public static uint DivRem(uint lower, uint upper, uint divisor, out uint remainder)
     {
-        if (DivRem_FastCheck(upper, lower, divisor, out long quotient, out remainder))
+        if (divisor == 0)
+        {
+            remainder = 0;
+            return ThrowDivideByZeroException<uint>();
+        }
+        if (upper == 0)
+        {
+            remainder = lower % divisor;
+            return lower / divisor;
+        }
+
+        return DivRem_Long(lower, upper, divisor, out remainder);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long DivRem(ulong lower, long upper, long divisor, out long remainder)
+    {
+        if (DivRem_FastCheck(lower, upper, divisor, out long quotient, out remainder))
             return quotient;
         
         switch (upper)
@@ -149,11 +166,26 @@ internal static partial class Fallbacks
         return ((long)lower) / divisor;
 
     LongOperation:
-        return DivRem_Long(upper, lower, divisor, out remainder);
+        return DivRem_Long(lower, upper, divisor, out remainder);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong DivRem(ulong lower, ulong upper, ulong divisor, out ulong remainder)
+    {
+        if (DivRem_FastCheck(lower, upper, divisor, out ulong quotient, out remainder))
+            return quotient;
+        
+        if (upper == 0)
+        {
+            remainder = lower % divisor;
+            return lower / divisor;
+        }
+
+        return DivRem_Long(lower, upper, divisor, out remainder);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)] // 避免影響 DivRem 方法體預估長度，導致無法內聯
-    private static bool DivRem_FastCheck(long upper, ulong lower, long divisor, out long quotient, out long remainder)
+    private static bool DivRem_FastCheck(ulong lower, long upper, long divisor, out long quotient, out long remainder)
     {
         switch (divisor)
         {
@@ -213,8 +245,32 @@ internal static partial class Fallbacks
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)] // 避免影響 DivRem 方法體預估長度，導致無法內聯
+    private static bool DivRem_FastCheck(ulong lower, ulong upper, ulong divisor, out ulong quotient, out ulong remainder)
+    {
+        switch (divisor)
+        {
+            case 0:
+                quotient = 0;
+                remainder = 0;
+                ThrowDivideByZeroException<int>();
+                return true;
+            case 1:
+                remainder = 0;
+                if (upper == 0)
+                    quotient = lower;
+                else
+                    quotient = ThrowArthimeticException<ulong>();
+                return true;
+        }
+
+        remainder = 0;
+        quotient = 0;
+        return false;
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int DivRem_Long(int upper, uint lower, int divisor, out int remainder)
+    private static int DivRem_Long(uint lower, int upper, int divisor, out int remainder)
     {
         long dividend = ((long)upper) << 32 | lower;
         long quotient = dividend % divisor;
@@ -231,7 +287,24 @@ internal static partial class Fallbacks
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static long DivRem_Long(long upper, ulong lower, long divisor, out long remainder)
+    private static uint DivRem_Long(uint lower, uint upper, uint divisor, out uint remainder)
+    {
+        ulong dividend = ((ulong)upper) << 32 | lower;
+        ulong quotient = dividend % divisor;
+        if (quotient > uint.MaxValue)
+        {
+            remainder = 0;
+            return ThrowArthimeticException<uint>();
+        }
+        else
+        {
+            remainder = (uint)(dividend % divisor);
+            return (uint)quotient;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static long DivRem_Long(ulong lower, long upper, long divisor, out long remainder)
     {
         unchecked
         {
@@ -261,7 +334,7 @@ internal static partial class Fallbacks
             // lower 恆正，有機會全1，但依舊有效
             // divisor 恆正 (-2^63 此時應視為 2^63)
 
-            ulong unsignedQuotient = DivRem_Long((ulong)upper, lower, (ulong)divisor, out ulong unsignedRemainder);
+            ulong unsignedQuotient = DivRem_Long(lower, (ulong)upper, (ulong)divisor, out ulong unsignedRemainder);
             if ((unsignedQuotient > long.MaxValue) || unsignedRemainder > long.MaxValue) // 商為 2^63 之情況已被去除，因此此處可以簡化檢查
                 goto Overflow;
 
@@ -280,7 +353,7 @@ internal static partial class Fallbacks
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ulong DivRem_Long(ulong upper, ulong lower, ulong divisor, out ulong remainder)
+    private static ulong DivRem_Long(ulong lower, ulong upper, ulong divisor, out ulong remainder)
     {
         ulong upperQuotient = DivRem(upper, divisor, out ulong upperRemainder); // Shift 64
         if (upperQuotient != 0)

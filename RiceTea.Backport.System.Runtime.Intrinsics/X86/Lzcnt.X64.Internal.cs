@@ -1,11 +1,10 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if (X86_ARCH && B64_ARCH) || ANYCPU
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
 using System.Runtime.Intrinsics.Internals;
 using System.Threading;
-
-using InlineIL;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -110,4 +109,5 @@ partial class Lzcnt
 		private abstract partial class StoreAsSpan : AssemblyCodeStoreBase.X64 { }
 	}
 }
+#endif
 #endif
