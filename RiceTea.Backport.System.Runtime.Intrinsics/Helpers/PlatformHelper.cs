@@ -1,11 +1,10 @@
 #if !NETSTANDARD2_1_OR_GREATER
-using System.Runtime.InteropServices;
 
 namespace System.Runtime.Intrinsics.Helpers;
 
 internal static class PlatformHelper
 {
-    public static readonly bool IsX86, IsX64;
+    public static readonly bool IsX86, IsX64, IsMono, IsUnix, IsWindows;
 
     static PlatformHelper()
     {
@@ -27,6 +26,26 @@ internal static class PlatformHelper
         };
         IsX64 = arch == Architecture.X64;
 #endif
+
+        IsMono = Type.GetType("Mono.Runtime") is not null;
+        switch (Environment.OSVersion.Platform)
+        {
+            case PlatformID.Win32S:
+            case PlatformID.Win32Windows:
+            case PlatformID.Win32NT:
+                IsWindows = true;
+                IsUnix = false;
+                break;
+            case PlatformID.Unix:
+            case PlatformID.MacOSX:
+                IsWindows = false;
+                IsUnix = true;
+                break;
+            default:
+                IsWindows =false;
+                IsUnix = false;
+                break;
+        }
     }
 }
 #endif

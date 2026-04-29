@@ -17,7 +17,7 @@ partial class X86Base
         {
 #if !B64_ARCH
             if (!Helpers.PlatformHelper.IsX64)
-                throw new PlatformNotSupportedException();
+                ThrowUtils.ThrowPlatformNotSupported();
 #endif
             if (SoftDependencyHelper.SystemMemoryExists)
                 StoreAsSpan.InjectBsrAsm(ref destination, ref length);
@@ -56,7 +56,7 @@ partial class X86Base
         }
 #else
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectBsrAsm(ref void* destination, ref uint length) => throw new PlatformNotSupportedException();
+        private static void InjectBsrAsm(ref void* destination, ref uint length) => ThrowUtils.ThrowPlatformNotSupported();
 #endif
     }
 }

@@ -4,8 +4,10 @@ namespace System.Runtime.Intrinsics.X86;
 partial class X86Base
 {
     /// <summary>Provides access to the x86 base hardware instructions, that are only available to 64-bit processes, via intrinsics.</summary>
-    public static partial class X64
+    public abstract partial class X64
     {
+        internal X64() { }
+
         /// <summary>Gets a value that indicates whether the APIs in this class are supported.</summary>
         /// <value><see langword="true" /> if the APIs are supported; otherwise, <see langword="false" />.</value>
         /// <remarks>A value of <see langword="false" /> indicates that the APIs will throw <see cref="PlatformNotSupportedException" />.</remarks>

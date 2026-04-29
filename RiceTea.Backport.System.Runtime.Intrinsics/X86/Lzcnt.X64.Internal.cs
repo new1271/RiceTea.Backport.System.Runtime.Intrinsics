@@ -1,6 +1,7 @@
 #if !NETSTANDARD2_1_OR_GREATER
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Helpers;
 using System.Runtime.Intrinsics.Internals;
 using System.Threading;
 
@@ -10,103 +11,103 @@ namespace System.Runtime.Intrinsics.X86;
 
 partial class Lzcnt
 {
-    partial class X64
-    {
-        private static readonly object? _lzcntLock;
-        private static readonly bool _isSupported;
+	partial class X64
+	{
+		private static readonly object? _lzcntLock;
+		private static readonly bool _isSupported;
 
-        static X64()
-        {
-            if (CheckIsSupported())
-            {
-                _lzcntLock = new object();
-                _isSupported = true;
-            }
-            else
-            {
-                _lzcntLock = null;
-                _isSupported = false;
-            }
-        }
+		static X64()
+		{
+			if (CheckIsSupported())
+			{
+				_lzcntLock = new object();
+				_isSupported = true;
+			}
+			else
+			{
+				_lzcntLock = null;
+				_isSupported = false;
+			}
+		}
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool CheckIsSupported()
-        {
-            if (!X86Base.X64.IsSupported)
-                return false;
-            const int LzcntMask = 1 << 5;
-            return (X86Base.CpuId(unchecked((int)0x80000001), 0).Ecx & LzcntMask) == LzcntMask;
-        }
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private static bool CheckIsSupported()
+		{
+			if (!X86Base.X64.IsSupported)
+				return false;
+			const int LzcntMask = 1 << 5;
+			return (CpuId(unchecked((int)0x80000001), 0).Ecx & LzcntMask) == LzcntMask;
+		}
 
-        public static partial bool IsSupported
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _isSupported;
-        }
+		public static new partial bool IsSupported
+		{
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => _isSupported;
+		}
 
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
-        public static partial ulong LeadingZeroCount(ulong value)
-        {
-            if (!_isSupported)
-                throw new PlatformNotSupportedException();
+		[DebuggerHidden]
+		[DebuggerStepThrough]
+		[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
+		public static partial ulong LeadingZeroCount(ulong value)
+		{
+			if (!_isSupported)
+				ThrowUtils.ThrowPlatformNotSupported();
 
-            LeadingZeroCount_InjectStart(value);
-            return LeadingZeroCount_InjectEnd(Fallbacks.LeadingZeroCount(value));
-        }
+			InjectStart(value);
+			return InjectEnd(Fallbacks.LeadingZeroCount(value));
 
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
-        private static unsafe void LeadingZeroCount_InjectStart(ulong value)
-        {
-            CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
-            LeadingZeroCount_EnterLock();
-        }
+			[DebuggerHidden]
+			[DebuggerStepThrough]
+			[MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+			static unsafe void InjectStart(ulong value)
+			{
+				CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+				EnterLock();
+			}
 
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static unsafe ulong LeadingZeroCount_InjectEnd(ulong value)
-        {
-            try
-            {
-                CallSiteInjector.InjectAsm(
-                    startAddress: CallSiteInjector.StartAddress,
-                    endAddress: CallSiteInjector.FindCallSite(),
-                    injectorFunc: &InjectLzcntAsm,
-                    exitLockFunc: &LeadingZeroCount_ExitLock);
-                return value;
-            }
-            finally
-            {
-                LeadingZeroCount_ExitLock();
-            }
-        }
+			[DebuggerHidden]
+			[DebuggerStepThrough]
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static unsafe ulong InjectEnd(ulong value)
+			{
+				try
+				{
+					CallSiteInjector.InjectAsm(
+						startAddress: CallSiteInjector.StartAddress,
+						endAddress: CallSiteInjector.FindCallSite(),
+						injectorFunc: &InjectLzcntAsm,
+						exitLockFunc: &ExitLock);
+					return value;
+				}
+				finally
+				{
+					ExitLock();
+				}
+			}
 
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void LeadingZeroCount_EnterLock() => Monitor.Enter(_lzcntLock!);
+			[DebuggerHidden]
+			[DebuggerStepThrough]
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			static void EnterLock() => Monitor.Enter(_lzcntLock!);
 
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void LeadingZeroCount_ExitLock()
-        {
-            try
-            {
-                Monitor.Exit(_lzcntLock!);
-            }
-            catch (SynchronizationLockException)
-            {
-            }
-        }
+			[DebuggerHidden]
+			[DebuggerStepThrough]
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			static void ExitLock()
+			{
+				try
+				{
+					Monitor.Exit(_lzcntLock!);
+				}
+				catch (SynchronizationLockException)
+				{
+				}
+			}
+		}
 
-        private static partial class StoreAsArray { }
+		private abstract partial class StoreAsArray : AssemblyCodeStoreBase.X64 { }
 
-        private static partial class StoreAsSpan { }
-    }
+		private abstract partial class StoreAsSpan : AssemblyCodeStoreBase.X64 { }
+	}
 }
 #endif

@@ -85,7 +85,8 @@ namespace System.Runtime.Intrinsics.Internals
                         return Compute(backTraces + offset, (ushort)(captures - offset), callSiteMethodStartAddress, injectEndFuncStartAddress);
                     }
                 default:
-                    throw new PlatformNotSupportedException();
+                    ThrowUtils.ThrowPlatformNotSupported();
+                    return default;
             }
 
             static void* Compute(void** backTraces, ushort captures, void* callSiteMethodStartAddress, void* injectEndFuncStartAddress)
