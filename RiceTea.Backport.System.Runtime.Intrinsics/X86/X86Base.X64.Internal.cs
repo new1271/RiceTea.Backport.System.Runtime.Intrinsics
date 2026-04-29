@@ -48,30 +48,11 @@ partial class X86Base
         {
             try
             {
-                byte* endAddress = (byte*)CallSiteInjector.FindCallSite();
-                byte* startAddress = (byte*)CallSiteInjector.StartAddress; // InjectStart() 的下一個位址
-
-                uint length = (uint)(endAddress - startAddress);
-                AsmCodeHelper.LetMemoryPageCanRWX(startAddress, length);
-
-                IL.Emit.Ldtoken(new MethodRef(typeof(X86Base), nameof(BitScanForward_ExitLock)));
-                IL.Pop(out RuntimeMethodHandle handle);
-                // 無須提前編譯和解析跳轉，此處傳回的會是 JIT Trampoline 位址，JIT 會在那個位址內決定是否需要編譯
-                CallSiteInjector.InjectCallInstruction(startAddress, (void*)handle.GetFunctionPointer());
-
-                byte* offsetedStartAddress = startAddress + CallSiteInjector.CallInstructionSize;
-                void* injectAddress = startAddress;
-                uint injectLength = length - CallSiteInjector.CallInstructionSize;
-                InjectBsfAsm(ref injectAddress, ref injectLength); // 此處傳入可注入之位址和長度，傳出已注入之位址和注入長度
-
-                CallSiteInjector.FillNopInstructions(offsetedStartAddress, (uint)((byte*)injectAddress - offsetedStartAddress));
-                byte* injectEndAddress = (byte*)injectAddress + injectLength;
-                CallSiteInjector.FillNopInstructions(injectEndAddress, (uint)(endAddress - injectEndAddress));
-
-                CallSiteInjector.InjectJumpInstruction(startAddress - CallSiteInjector.JumpInstructionSize, injectAddress); // 建立跳轉
-
-                AsmCodeHelper.FlushInstructionCache(startAddress, length);
-
+                CallSiteInjector.InjectAsm(
+                    startAddress: CallSiteInjector.StartAddress,
+                    endAddress: CallSiteInjector.FindCallSite(),
+                    injectorFunc: &InjectBsfAsm,
+                    exitLockFunc: &BitScanForward_ExitLock);
                 return value;
             }
             finally
@@ -119,30 +100,11 @@ partial class X86Base
         {
             try
             {
-                byte* endAddress = (byte*)CallSiteInjector.FindCallSite();
-                byte* startAddress = (byte*)CallSiteInjector.StartAddress; // InjectStart() 的下一個位址
-
-                uint length = (uint)(endAddress - startAddress);
-                AsmCodeHelper.LetMemoryPageCanRWX(startAddress, length);
-
-                IL.Emit.Ldtoken(new MethodRef(typeof(X86Base), nameof(BitScanReverse_ExitLock)));
-                IL.Pop(out RuntimeMethodHandle handle);
-                // 無須提前編譯和解析跳轉，此處傳回的會是 JIT Trampoline 位址，JIT 會在那個位址內決定是否需要編譯
-                CallSiteInjector.InjectCallInstruction(startAddress, (void*)handle.GetFunctionPointer());
-
-                byte* offsetedStartAddress = startAddress + CallSiteInjector.CallInstructionSize;
-                void* injectAddress = startAddress;
-                uint injectLength = length - CallSiteInjector.CallInstructionSize;
-                InjectBsrAsm(ref injectAddress, ref injectLength); // 此處傳入可注入之位址和長度，傳出已注入之位址和注入長度
-
-                CallSiteInjector.FillNopInstructions(offsetedStartAddress, (uint)((byte*)injectAddress - offsetedStartAddress));
-                byte* injectEndAddress = (byte*)injectAddress + injectLength;
-                CallSiteInjector.FillNopInstructions(injectEndAddress, (uint)(endAddress - injectEndAddress));
-
-                CallSiteInjector.InjectJumpInstruction(startAddress - CallSiteInjector.JumpInstructionSize, injectAddress); // 建立跳轉
-
-                AsmCodeHelper.FlushInstructionCache(startAddress, length);
-
+                CallSiteInjector.InjectAsm(
+                    startAddress: CallSiteInjector.StartAddress,
+                    endAddress: CallSiteInjector.FindCallSite(),
+                    injectorFunc: &InjectBsrAsm,
+                    exitLockFunc: &BitScanReverse_ExitLock);
                 return value;
             }
             finally

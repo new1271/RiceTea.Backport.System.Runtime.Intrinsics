@@ -3,7 +3,10 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Helpers;
+using System.Runtime.Intrinsics.X86;
 using System.Security;
+
+using InlineIL;
 
 namespace System.Runtime.Intrinsics.Internals
 {
@@ -16,6 +19,28 @@ namespace System.Runtime.Intrinsics.Internals
 
         [ThreadStatic]
         public static void* StartAddress;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void InjectAsm(void* startAddress, void* endAddress, delegate* managed<ref void*, ref uint, void> injectorFunc, delegate* managed<void> exitLockFunc)
+        {
+            uint length = (uint)((byte*)endAddress - (byte*)startAddress);
+            AsmCodeHelper.LetMemoryPageCanRWX(startAddress, length);
+
+            InjectCallInstruction(startAddress, exitLockFunc);
+
+            byte* offsetedStartAddress = (byte*)startAddress + CallInstructionSize;
+            void* injectAddress = startAddress;
+            uint injectLength = length - CallInstructionSize;
+            injectorFunc(ref injectAddress, ref injectLength); // 此處傳入可注入之位址和長度，傳出已注入之位址和注入長度
+
+            FillNopInstructions(offsetedStartAddress, (uint)((byte*)injectAddress - offsetedStartAddress));
+            byte* injectEndAddress = (byte*)injectAddress + injectLength;
+            FillNopInstructions(injectEndAddress, (uint)((byte*)endAddress - injectEndAddress));
+
+            InjectJumpInstruction((byte*)startAddress - JumpInstructionSize, injectAddress); // 建立跳轉
+
+            AsmCodeHelper.FlushInstructionCache(startAddress, length);
+        }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void* FindCallSite()
@@ -210,15 +235,15 @@ namespace System.Runtime.Intrinsics.Internals
             {
                 case 9:  // nop_9: 66 0F 1F 84 00 00 00 00 00
                     *(uint*)castedPtr = 0x84_1F_0F_66;
-                    *(uint*)(castedPtr + 4) = 0; 
-                    *(castedPtr + 8) = 0; 
+                    *(uint*)(castedPtr + 4) = 0;
+                    *(castedPtr + 8) = 0;
                     break;
                 case 8:  // nop_8: 0F 1F 84 00 00 00 00 00
                     *(uint*)castedPtr = 0x84_1F_0F;
-                    *(uint*)(castedPtr + 4) = 0; 
+                    *(uint*)(castedPtr + 4) = 0;
                     break;
                 case 7: // nop_7: 0F 1F 80 00 00 00 00
-                    *(uint*)castedPtr = 0x80_1F_0F; 
+                    *(uint*)castedPtr = 0x80_1F_0F;
                     *(ushort*)(castedPtr + 4) = 0;
                     *(castedPtr + 6) = 0;
                     break;
