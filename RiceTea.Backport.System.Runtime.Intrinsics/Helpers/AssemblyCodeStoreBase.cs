@@ -22,7 +22,7 @@ namespace System.Runtime.Intrinsics.Helpers
 
         internal abstract class X64
         {
-            public static readonly bool UseUnixLogic = PlatformHelper.IsUnix;
+            public static readonly bool IsUnix = PlatformHelper.IsUnix;
         }
     }
 }

@@ -27,7 +27,7 @@ partial class Popcnt
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			public static void InjectPopcntAsm(ref void* destination, ref uint length)
 			{
-				if (UseUnixLogic)
+				if (IsUnix)
 					InjectPopcntAsm_Unix(ref destination, ref length);
 				else
 					InjectPopcntAsm_Windows(ref destination, ref length);
@@ -69,7 +69,7 @@ partial class Popcnt
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			public static void InjectPopcntAsm(ref void* destination, ref uint length)
 			{
-				if (UseUnixLogic)
+				if (IsUnix)
 					InjectPopcntAsm_Unix(ref destination, ref length);
 				else
 					InjectPopcntAsm_Windows(ref destination, ref length);

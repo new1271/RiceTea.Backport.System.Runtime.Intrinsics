@@ -27,7 +27,7 @@ partial class Lzcnt
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			public static void InjectLzcntAsm(ref void* destination, ref uint length)
 			{
-				if (UseUnixLogic)
+				if (IsUnix)
 					InjectLzcntAsm_Unix(ref destination, ref length);
 				else
 					InjectLzcntAsm_Windows(ref destination, ref length);
@@ -69,7 +69,7 @@ partial class Lzcnt
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			public static void InjectLzcntAsm(ref void* destination, ref uint length)
 			{
-				if (UseUnixLogic)
+				if (IsUnix)
 					InjectLzcntAsm_Unix(ref destination, ref length);
 				else
 					InjectLzcntAsm_Windows(ref destination, ref length);

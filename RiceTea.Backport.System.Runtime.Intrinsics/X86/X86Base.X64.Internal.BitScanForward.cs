@@ -27,7 +27,7 @@ partial class X86Base
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			public static void InjectBsfAsm(ref void* destination, ref uint length)
 			{
-				if (UseUnixLogic)
+				if (IsUnix)
 					InjectBsfAsm_Unix(ref destination, ref length);
 				else
 					InjectBsfAsm_Windows(ref destination, ref length);
@@ -69,7 +69,7 @@ partial class X86Base
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			public static void InjectBsfAsm(ref void* destination, ref uint length)
 			{
-				if (UseUnixLogic)
+				if (IsUnix)
 					InjectBsfAsm_Unix(ref destination, ref length);
 				else
 					InjectBsfAsm_Windows(ref destination, ref length);

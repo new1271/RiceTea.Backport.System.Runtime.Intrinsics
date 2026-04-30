@@ -24,7 +24,8 @@ unsafe partial class X86Base
 		if (PlatformHelper.IsX86)
 		{
 			_isSupported = true;
-			_bsfLock = new object();
+            _cpuIdAsm = BuildCpuIdAsm();
+            _bsfLock = new object();
 			_bsrLock = new object();
             _idivLock = new object();
             _divLock = new object();

@@ -11,15 +11,29 @@ namespace System.Runtime.Intrinsics.X86;
 partial class X86Base
 {
 	unsafe partial class X64
-	{
-		private static readonly bool _isSupported;
+    {
+        private static readonly object? _bsfLock, _bsrLock, _idivLock, _divLock;
+        private static readonly bool _isSupported;
 
 		static X64()
 		{
-			if (!PlatformHelper.IsX64)
-				return;
-			_isSupported = true;
-		}
+            if (PlatformHelper.IsX64)
+            {
+                _isSupported = true;
+                _bsfLock = new object();
+                _bsrLock = new object();
+                _idivLock = new object();
+                _divLock = new object();
+            }
+            else
+            {
+                _isSupported = false;
+                _bsfLock = null;
+                _bsrLock = null;
+                _idivLock = null;
+                _divLock = null;
+            }
+        }
 
 		public static partial bool IsSupported => _isSupported;
 
@@ -127,87 +141,141 @@ partial class X86Base
 			}
 		}
 
-		[DebuggerHidden]
+
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
+        private static long DivRem(ulong lower, long upper, long divisor, out long rem)
+        {
+            if (!_isSupported)
+                ThrowUtils.ThrowPlatformNotSupported();
+
+            InjectStart(lower, upper, divisor, out rem);
+            return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
+
+            [DebuggerHidden]
+            [DebuggerStepThrough]
+            [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+            static void InjectStart(ulong lower, long upper, long divisor, out long rem)
+            {
+                rem = 0;
+                CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+                EnterLock();
+            }
+
+            [DebuggerHidden]
+            [DebuggerStepThrough]
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static long InjectEnd(long value)
+            {
+                try
+                {
+                    CallSiteInjector.InjectAsm(
+                        startAddress: CallSiteInjector.StartAddress,
+                        endAddress: CallSiteInjector.FindCallSite(),
+                        injectorFunc: &InjectIDivAsm,
+                        exitLockFunc: &ExitLock);
+                    return value;
+                }
+                finally
+                {
+                    ExitLock();
+                }
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void EnterLock() => Monitor.Enter(_idivLock!);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void ExitLock()
+            {
+                try
+                {
+                    Monitor.Exit(_idivLock!);
+                }
+                catch (SynchronizationLockException)
+                {
+                }
+            }
+        }
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
+        private static ulong DivRem(ulong lower, ulong upper, ulong divisor, out ulong rem)
+        {
+            if (!_isSupported)
+                ThrowUtils.ThrowPlatformNotSupported();
+
+            InjectStart(lower, upper, divisor, out rem);
+            return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
+
+            [DebuggerHidden]
+            [DebuggerStepThrough]
+            [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+            static void InjectStart(ulong lower, ulong upper, ulong divisor, out ulong rem)
+            {
+                rem = 0;
+                CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+                EnterLock();
+            }
+
+            [DebuggerHidden]
+            [DebuggerStepThrough]
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static ulong InjectEnd(ulong value)
+            {
+                try
+                {
+                    CallSiteInjector.InjectAsm(
+                        startAddress: CallSiteInjector.StartAddress,
+                        endAddress: CallSiteInjector.FindCallSite(),
+                        injectorFunc: &InjectDivAsm,
+                        exitLockFunc: &ExitLock);
+                    return value;
+                }
+                finally
+                {
+                    ExitLock();
+                }
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void EnterLock() => Monitor.Enter(_divLock!);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void ExitLock()
+            {
+                try
+                {
+                    Monitor.Exit(_divLock!);
+                }
+                catch (SynchronizationLockException)
+                {
+                }
+            }
+        }
+
+        [DebuggerHidden]
 		[DebuggerStepThrough]
 		[MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
 		public static partial (long Quotient, long Remainder) DivRem(ulong lower, long upper, long divisor)
 		{
-			if (!_isSupported)
-				ThrowUtils.ThrowPlatformNotSupported();
-
-			InjectDiv128Asm();
-
-			if (divisor == 0)
-				throw new DivideByZeroException();
-
-			if (upper == ((long)lower >> 63))
-				return ((long)lower / divisor, (long)lower % divisor);
-
-			bool isNegativeDividend = upper < 0;
-			bool isNegativeDivisor = divisor < 0;
-			bool isNegativeQuotient = isNegativeDividend ^ isNegativeDivisor;
-
-			ulong uUpper = (ulong)upper;
-			ulong uLower = lower;
-			if (isNegativeDividend)
-			{
-				uLower = ~uLower;
-				uUpper = ~uUpper;
-				if (++uLower == 0) uUpper++;
-			}
-			ulong uDivisor = (ulong)(isNegativeDivisor ? -divisor : divisor);
-
-			if (uUpper >= uDivisor) throw new OverflowException();
-
-			(ulong uQ, ulong uR) = DivRem(uLower, uUpper, uDivisor);
-
-			long q = (long)uQ;
-			long r = (long)uR;
-
-			if (isNegativeQuotient) q = -q;
-			if (isNegativeDividend) r = -r;
-
-			return (q, r);
+			long quotient = DivRem(lower, upper, divisor, out long remainder);
+			return (quotient, remainder);
 		}
 
 		[DebuggerHidden]
 		[DebuggerStepThrough]
 		[MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
 		public static partial (ulong Quotient, ulong Remainder) DivRem(ulong lower, ulong upper, ulong divisor)
-		{
-			if (!_isSupported)
-				ThrowUtils.ThrowPlatformNotSupported();
+        {
+            ulong quotient = DivRem(lower, upper, divisor, out ulong remainder);
+            return (quotient, remainder);
+        }
 
-			InjectUDiv128Asm();
-
-			if (divisor == 0)
-				throw new DivideByZeroException();
-
-			if (upper == 0)
-				return (lower / divisor, lower % divisor);
-
-			if (upper >= divisor)
-				throw new OverflowException("Quotient is too large (Integer Overflow).");
-
-			ulong quotient = 0;
-			ulong remainder = upper;
-
-			for (int i = 63; i >= 0; i--)
-			{
-				ulong bit = (lower >> i) & 1;
-				remainder = (remainder << 1) | bit;
-
-				if (remainder >= divisor)
-				{
-					remainder -= divisor;
-					quotient |= (1UL << i);
-				}
-			}
-
-			return (quotient, remainder);
-		}
-
-		private abstract partial class StoreAsArray : AssemblyCodeStoreBase.X64 { }
+        private abstract partial class StoreAsArray : AssemblyCodeStoreBase.X64 { }
 
 		private abstract partial class StoreAsSpan : AssemblyCodeStoreBase.X64 { }
 	}

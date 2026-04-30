@@ -27,7 +27,7 @@ partial class Bmi1
             [MethodImpl(MethodImplOptions.NoInlining)]
             public static void InjectTzcntAsm(ref void* destination, ref uint length)
             {
-                if (UseUnixLogic)
+                if (IsUnix)
                     InjectTzcntAsm_Unix(ref destination, ref length);
                 else
                     InjectTzcntAsm_Windows(ref destination, ref length);
@@ -69,7 +69,7 @@ partial class Bmi1
             [MethodImpl(MethodImplOptions.NoInlining)]
             public static void InjectTzcntAsm(ref void* destination, ref uint length)
             {
-				if (UseUnixLogic)
+				if (IsUnix)
 					InjectTzcntAsm_Unix(ref destination, ref length);
 				else
 					InjectTzcntAsm_Windows(ref destination, ref length);
