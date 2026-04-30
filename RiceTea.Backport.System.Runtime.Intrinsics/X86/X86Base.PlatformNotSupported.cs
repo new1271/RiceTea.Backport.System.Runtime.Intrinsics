@@ -41,6 +41,9 @@ partial class X86Base
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial (nuint Quotient, nuint Remainder) DivRem(nuint lower, nuint upper, nuint divisor) => ThrowUtils.ThrowPlatformNotSupported<(nuint Quotient, nuint Remainder)>();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial void Pause() => ThrowUtils.ThrowPlatformNotSupported();
 }
 #endif
 #endif

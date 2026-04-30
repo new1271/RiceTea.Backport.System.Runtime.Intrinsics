@@ -15,7 +15,7 @@ namespace System.Runtime.Intrinsics.X86;
 [SuppressUnmanagedCodeSecurity]
 unsafe partial class X86Base
 {
-	private static readonly object? _bsfLock, _bsrLock, _idivLock, _divLock;
+	private static readonly object? _bsfLock, _bsrLock, _idivLock, _divLock, _pauseLock;
 	private static readonly void* _cpuIdAsm;
 	private static readonly bool _isSupported;
 
@@ -29,6 +29,7 @@ unsafe partial class X86Base
 			_bsrLock = new object();
             _idivLock = new object();
             _divLock = new object();
+            _pauseLock = new object();
 		}
 		else
 		{
@@ -38,6 +39,7 @@ unsafe partial class X86Base
 			_bsrLock = null;
             _idivLock = null;
             _divLock = null;
+            _pauseLock = null;
 		}
 	}
 
@@ -331,7 +333,63 @@ unsafe partial class X86Base
 			}
 		};
 
-	private abstract partial class StoreAsArray : AssemblyCodeStoreBase { }
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
+    public static partial void Pause()
+    {
+        if (!_isSupported)
+            ThrowUtils.ThrowPlatformNotSupported();
+
+        InjectStart();
+		Thread.SpinWait(iterations: 1);
+        InjectEnd();
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+        static void InjectStart()
+        {
+            CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+            EnterLock();
+        }
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static void InjectEnd()
+        {
+            try
+            {
+                CallSiteInjector.InjectAsm(
+                    startAddress: CallSiteInjector.StartAddress,
+                    endAddress: CallSiteInjector.FindCallSite(),
+                    injectorFunc: &InjectPauseAsm,
+                    exitLockFunc: &ExitLock);
+            }
+            finally
+            {
+                ExitLock();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void EnterLock() => Monitor.Enter(_pauseLock!);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void ExitLock()
+        {
+            try
+            {
+                Monitor.Exit(_pauseLock!);
+            }
+            catch (SynchronizationLockException)
+            {
+            }
+        }
+    }
+
+    private abstract partial class StoreAsArray : AssemblyCodeStoreBase { }
 
 	private abstract partial class StoreAsSpan : AssemblyCodeStoreBase { }
 

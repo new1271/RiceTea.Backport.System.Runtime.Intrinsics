@@ -50,5 +50,11 @@ public abstract partial class X86Base
 
     /// <summary>  DIV reg/m</summary>
     public static partial (nuint Quotient, nuint Remainder) DivRem(nuint lower, nuint upper, nuint divisor);
+
+    /// <summary>
+    /// void _mm_pause (void);
+    ///   PAUSE
+    /// </summary>
+    public static partial void Pause();
 }
 #endif
