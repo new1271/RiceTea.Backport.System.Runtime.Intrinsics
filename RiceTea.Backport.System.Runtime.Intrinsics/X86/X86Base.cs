@@ -14,14 +14,6 @@ public abstract partial class X86Base
     public static partial bool IsSupported { get; }
 
     /// <summary>
-    ///   <para>void __cpuidex (int cpuInfo[4], int function_id, int subfunction_id = 0);</para>
-    ///   <para>  CPUID</para>
-    /// </summary>
-    [Inline(InlineBehavior.Keep, export: true)]
-    public static (int Eax, int Ebx, int Ecx, int Edx) CpuId(int functionId)
-        => CpuId(functionId, subFunctionId: 0);
-
-    /// <summary>
     ///   <para>void __cpuidex (int cpuInfo[4], int function_id, int subfunction_id);</para>
     ///   <para>  CPUID</para>
     /// </summary>
