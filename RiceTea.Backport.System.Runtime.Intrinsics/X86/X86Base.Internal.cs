@@ -130,7 +130,7 @@ unsafe partial class X86Base
 			ThrowUtils.ThrowPlatformNotSupported();
 
 		InjectStart(value);
-		return InjectEnd(Fallbacks.BitScanForward(value));
+		return InjectEnd(Fallbacks.BitScanReverse(value));
 
 		[DebuggerHidden]
 		[DebuggerStepThrough]

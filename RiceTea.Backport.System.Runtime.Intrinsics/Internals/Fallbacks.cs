@@ -1,6 +1,5 @@
 #if !NETSTANDARD2_1_OR_GREATER
 using System.Diagnostics;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
 
@@ -13,40 +12,89 @@ internal static partial class Fallbacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong BitScanForward(ulong value)
     {
-        uint lo = (uint)value;
-
-        if (lo == 0)
-            return 32 + BitScanForward((uint)(value >> 32));
-
-        return BitScanForward(lo);
+        if (value == 0UL)
+            return sizeof(ulong) * 8;
+        return TrailingZeroCount(value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint BitScanForward(uint value)
     {
-        if (_isSystemMemoryExists)
-            return (uint)DeBruijn_StoreAsSpan.TrailingZeroCount(value);
-        else
-            return (uint)DeBruijn_StoreAsArray.TrailingZeroCount(value);
+        if (value == 0U)
+            return sizeof(uint) * 8;
+        return TrailingZeroCount(value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong BitScanReverse(ulong value)
     {
-        uint hi = (uint)(value >> 32);
-
-        if (hi == 0)
-            return BitScanReverse((uint)value);
-
-        return 32 + BitScanReverse(hi);
+        if (value == 0UL)
+            return ulong.MaxValue;
+        return Log2(value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint BitScanReverse(uint value)
     {
+        if (value == 0U)
+            return uint.MaxValue;
+        return Log2(value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong TrailingZeroCount(ulong value)
+    {
+        uint lo = (uint)value;
+
+        if (lo == 0)
+            return 32 + TrailingZeroCount((uint)(value >> 32));
+
+        return TrailingZeroCount(lo);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint TrailingZeroCount(uint value)
+    {
+        // uint.MaxValue >> 27 is always in range [0 - 31]
+        // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
+        nuint index = (nuint)(int)(((value & (uint)-(int)value) * 0x077CB531u) >> 27);
+        // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
         if (_isSystemMemoryExists)
-            return (uint)DeBruijn_StoreAsSpan.Log2(value);
+            return DeBruijn_StoreAsSpan.QueryTrailingZeroCountTable(index);
         else
-            return (uint)DeBruijn_StoreAsArray.Log2(value);
+            return DeBruijn_StoreAsArray.QueryTrailingZeroCountTable(index);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong Log2(ulong value)
+    {
+        uint hi = (uint)(value >> 32);
+
+        if (hi == 0)
+            return Log2((uint)value);
+
+        return 32 + Log2(hi);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint Log2(uint value)
+    {            
+        // Fill trailing zeros with ones, eg 00010010 becomes 00011111
+        value |= value >> 01;
+        value |= value >> 02;
+        value |= value >> 04;
+        value |= value >> 08;
+        value |= value >> 16;
+
+        // uint.MaxValue >> 27 is always in range [0 - 31]
+        // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
+        nuint index = (nuint)(int)((value * 0x07C4ACDDu) >> 27);
+
+        // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
+        if (_isSystemMemoryExists)
+            return DeBruijn_StoreAsSpan.QueryLog2Table(index);
+        else
+            return DeBruijn_StoreAsArray.QueryLog2Table(index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -55,14 +103,14 @@ internal static partial class Fallbacks
         uint hi = (uint)(value >> 32);
 
         if (hi == 0)
-            return 32 + (31 ^ BitScanReverse((uint)value));
+            return 32 + (31 ^ Log2((uint)value));
 
-        return 31 ^ BitScanReverse(hi);
+        return 31 ^ Log2(hi);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint LeadingZeroCount(uint value)
-        => 31u ^ BitScanReverse(value);
+        => 31u ^ Log2(value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint PopCount(uint value)

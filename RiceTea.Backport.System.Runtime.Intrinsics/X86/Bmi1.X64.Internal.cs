@@ -53,7 +53,7 @@ partial class Bmi1
                 ThrowUtils.ThrowPlatformNotSupported();
 
             InjectStart(value);
-            return InjectEnd(Fallbacks.BitScanForward(value));
+            return InjectEnd(Fallbacks.TrailingZeroCount(value));
 
             [DebuggerHidden]
             [DebuggerStepThrough]

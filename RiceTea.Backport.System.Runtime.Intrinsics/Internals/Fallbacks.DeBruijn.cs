@@ -53,6 +53,22 @@ partial class Fallbacks
                 // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
                 (uint)(int)((value * 0x07C4ACDDu) >> 27));
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static byte QueryTrailingZeroCountTable(nuint index)
+        {
+            return UnsafeHelper.AddByteOffset(
+                in TrailingZeroCountDeBruijn32[0],
+                index);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static byte QueryLog2Table(nuint index)
+        {
+            return UnsafeHelper.AddByteOffset(
+                in Log2DeBruijn32[0],
+                index);
+        }
     }
 
     private static class DeBruijn_StoreAsSpan
@@ -100,6 +116,22 @@ partial class Fallbacks
                 in Log2DeBruijn32.GetPinnableReference(),
                 // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
                 (uint)(int)((value * 0x07C4ACDDu) >> 27));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static byte QueryTrailingZeroCountTable(nuint index)
+        {
+            return UnsafeHelper.AddByteOffset(
+                in TrailingZeroCountDeBruijn32.GetPinnableReference(),
+                index);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static byte QueryLog2Table(nuint index)
+        {
+            return UnsafeHelper.AddByteOffset(
+                in Log2DeBruijn32.GetPinnableReference(),
+                index);
         }
     }
 }

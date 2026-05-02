@@ -141,8 +141,6 @@ partial class X86Base
 			}
 		}
 
-
-
         [DebuggerHidden]
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
