@@ -22,6 +22,7 @@ Only implements those APIs that I may use<br/>
   - BitScanForward
   - BitScanReverse
   - DivRem
+  - Pause
 - System.Runtime.Intrinsics.X86.X86Base.X64
   - CpuId
   - BitScanForward
