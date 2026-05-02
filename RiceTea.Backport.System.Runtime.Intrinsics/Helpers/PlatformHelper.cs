@@ -18,13 +18,13 @@ internal static class PlatformHelper
         IsX64 = UIntPtr.Size == sizeof(ulong);
 #endif
 #else
-        var arch = RuntimeInformation.ProcessArchitecture;
+        var arch = InteropServices.RuntimeInformation.ProcessArchitecture;
         IsX86 = arch switch
         {
-            Architecture.X86 or Architecture.X64 => true,
+            InteropServices.Architecture.X86 or InteropServices.Architecture.X64 => true,
             _ => false,
         };
-        IsX64 = arch == Architecture.X64;
+        IsX64 = arch == InteropServices.Architecture.X64;
 #endif
 
         IsMono = Type.GetType("Mono.Runtime") is not null;
