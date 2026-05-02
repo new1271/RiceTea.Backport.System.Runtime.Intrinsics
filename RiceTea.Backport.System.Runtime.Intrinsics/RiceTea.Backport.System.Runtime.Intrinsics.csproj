@@ -11,6 +11,7 @@
 		<AssemblyName>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyName>
 		<AssemblyVersion>1.0.0</AssemblyVersion>
 		<Authors>RiceTea</Authors>
+		<Description>Provides APIs for accessing processor specific instructions. (backports to .NET Standard 2.0 by Rice Tea)</Description>
 		<PackageId>RiceTea.Backport.System.Runtime.Intrinsics</PackageId>
 		<PackageTags>intrinsics</PackageTags>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
