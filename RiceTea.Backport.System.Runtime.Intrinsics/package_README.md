@@ -22,7 +22,6 @@ Provides those types and methods:
   - DivRem
   - Pause
 - System.Runtime.Intrinsics.X86.X86Base.X64
-  - CpuId
   - BitScanForward
   - BitScanReverse
   - DivRem
