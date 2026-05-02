@@ -55,5 +55,23 @@ internal static unsafe class UnsafeHelper
         IL.Emit.Ret();
         throw IL.Unreachable();
     }
+
+    [Inline(InlineBehavior.Remove)]
+    public static void CopyBlock(void* destination, void* source, uint byteCount)
+    {
+        IL.Emit.Ldarg_0();
+        IL.Emit.Ldarg_1();
+        IL.Emit.Ldarg_2();
+        IL.Emit.Cpblk();
+    }
+
+    [Inline(InlineBehavior.Remove)]
+    public static void InitBlock(void* ptr, byte b, uint byteCount)
+    {
+        IL.Emit.Ldarg_0();
+        IL.Emit.Ldarg_1();
+        IL.Emit.Ldarg_2();
+        IL.Emit.Initblk();
+    }
 }
 #endif

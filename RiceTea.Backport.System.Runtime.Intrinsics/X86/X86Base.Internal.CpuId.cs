@@ -1,4 +1,5 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if X86_ARCH || ANYCPU
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
 using System.Runtime.Intrinsics.Internals;
@@ -7,7 +8,6 @@ namespace System.Runtime.Intrinsics.X86;
 
 unsafe partial class X86Base
 {
-#if (X86_ARCH || ANYCPU)
     /*
      * extern "C"
 
@@ -24,7 +24,7 @@ unsafe partial class X86Base
 #elif B32_ARCH
         return BuildCpuIdAsm_X86();
 #else
-        return Helpers.PlatformHelper.IsX64 ? BuildCpuIdAsm_X64() : BuildCpuIdAsm_X86();
+        return PlatformHelper.IsX64 ? BuildCpuIdAsm_X64() : BuildCpuIdAsm_X86();
 #endif
     }
 
@@ -125,9 +125,6 @@ unsafe partial class X86Base
         }
     }
 #endif
-#else
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void* BuildCpuIdAsm() => null;
-#endif
 }
+#endif
 #endif

@@ -1,120 +1,164 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if X86_ARCH || ANYCPU
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.Helpers;
-using System.Runtime.Intrinsics.Internals;
-
-using InlineIL;
 
 namespace System.Runtime.Intrinsics.X86;
 
-partial class X86Base
+unsafe partial class X86Base
 {
-#if (X86_ARCH || ANYCPU)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InjectBsrAsm()
+    private static void InjectBsrAsm(ref void* destination, ref uint length)
     {
+        if (SoftDependencyHelper.SystemMemoryExists)
+            StoreAsSpan.InjectBsrAsm(ref destination, ref length);
+        else
+            StoreAsArray.InjectBsrAsm(ref destination, ref length);
+    }
+
+    partial class StoreAsArray
+    {
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void InjectBsrAsm(ref void* destination, ref uint length)
+        {
+            if (IsUnix)
+            {
 #if B64_ARCH
-        InjectBsrAsm_X64();
+                InjectBsrAsm_Unix_X64(ref destination, ref length);
 #elif B32_ARCH
-        InjectBsrAsm_X86();
+                InjectBsrAsm_Unix_X86(ref destination, ref length);
 #else
-        if (Helpers.PlatformHelper.IsX64)
-            InjectBsrAsm_X64();
-        else
-            InjectBsrAsm_X86();
+                if (IsX64)
+                    InjectBsrAsm_Unix_X64(ref destination, ref length);
+                else
+                    InjectBsrAsm_Unix_X86(ref destination, ref length);
 #endif
-    }
-
-#if (B32_ARCH || ANYCPU)
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InjectBsrAsm_X86()
-    {
-        if (SoftDependencyHelper.SystemMemoryExists)
-            StoreAsSpan.InjectBsrAsm_X86();
-        else
-            StoreAsArray.InjectBsrAsm_X86();
-    }
-
-    partial class StoreAsArray
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void InjectBsrAsm_X86()
-        {
-            const int Length = 8;
-            byte[] data = new byte[Length] {
-                0x0F, 0xBD, 0x44, 0x24, 0x04,
-                0xC2, 0x04, 0x00
-            };
-            IL.Emit.Ldtoken(MethodRef.Method(typeof(X86Base), nameof(BitScanReverse)));
-            IL.Pop(out RuntimeMethodHandle method);
-            AsmCodeHelper.InjectAsmCode(method, data, Length);
+            }
+            else
+                InjectBsrAsm_Windows(ref destination, ref length);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectBsrAsm_Windows(ref void* destination, ref uint length)
+        {
+            const int Length = 3;
+            byte[] data = new byte[Length] {
+                0x0F, 0xBD, 0xC1 // bsr eax, ecx
+            };
+            if (length < Length)
+                throw new AccessViolationException();
+            destination = (byte*)destination + length - Length;
+            fixed (byte* source = data)
+                UnsafeHelper.CopyBlock(destination, source, Length);
+            length = Length;
+        }
+
+#if B32_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectBsrAsm_Unix_X86(ref void* destination, ref uint length)
+        {
+            const int Length = 5;
+            byte[] data = new byte[Length] {
+                0x0F, 0xBD, 0x44, 0x24, 0x04 // bsr eax, dword ptr [esp+4]
+            };
+            if (length < Length)
+                throw new AccessViolationException();
+            destination = (byte*)destination + length - Length;
+            fixed (byte* source = data)
+                UnsafeHelper.CopyBlock(destination, source, Length);
+            length = Length;
+        }
+#endif
+
+#if B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectBsrAsm_Unix_X64(ref void* destination, ref uint length)
+        {
+            const int Length = 3;
+            byte[] data = new byte[Length] {
+                0x0F, 0xBD, 0xC7 // bsr eax, edi
+            };
+            if (length < Length)
+                throw new AccessViolationException();
+            destination = (byte*)destination + length - Length;
+            fixed (byte* source = data)
+                UnsafeHelper.CopyBlock(destination, source, Length);
+            length = Length;
+        }
+#endif
     }
 
     partial class StoreAsSpan
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void InjectBsrAsm_X86()
+        public static void InjectBsrAsm(ref void* destination, ref uint length)
         {
-            const int Length = 8;
-            ReadOnlySpan<byte> data = [
-                0x0F, 0xBD, 0x44, 0x24, 0x04,
-                0xC2, 0x04, 0x00
-            ];
-            IL.Emit.Ldtoken(MethodRef.Method(typeof(X86Base), nameof(BitScanReverse)));
-            IL.Pop(out RuntimeMethodHandle method);
-            AsmCodeHelper.InjectAsmCode(method, data, Length);
-        }
-    }
-#endif
-
-#if (B64_ARCH || ANYCPU)
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InjectBsrAsm_X64()
-    {
-        if (SoftDependencyHelper.SystemMemoryExists)
-            StoreAsSpan.InjectBsrAsm_X64();
-        else
-            StoreAsArray.InjectBsrAsm_X64();
-    }
-
-    partial class StoreAsArray
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void InjectBsrAsm_X64()
-        {
-            const int Length = 8;
-            byte[] data = new byte[Length] {
-                0x0F, 0xBD, 0xC1,
-                0xC3,
-                0xCC, 0xCC, 0xCC, 0xCC 
-            };
-            IL.Emit.Ldtoken(MethodRef.Method(typeof(X86Base), nameof(BitScanReverse)));
-            IL.Pop(out RuntimeMethodHandle method);
-            AsmCodeHelper.InjectAsmCode(method, data, Length);
-        }
-    }
-
-    partial class StoreAsSpan
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void InjectBsrAsm_X64()
-        {
-            const int Length = 8;
-            ReadOnlySpan<byte> data = [
-                0x0F, 0xBD, 0xC1,
-                0xC3,
-                0xCC, 0xCC, 0xCC, 0xCC
-            ];
-            IL.Emit.Ldtoken(MethodRef.Method(typeof(X86Base), nameof(BitScanReverse)));
-            IL.Pop(out RuntimeMethodHandle method);
-            AsmCodeHelper.InjectAsmCode(method, data, Length);
-        }
-    }
-#endif
+            if (IsUnix)
+            {
+#if B64_ARCH
+                InjectBsrAsm_Unix_X64(ref destination, ref length);
+#elif B32_ARCH
+                InjectBsrAsm_Unix_X86(ref destination, ref length);
 #else
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InjectBsrAsm() {};
+                if (IsX64)
+                    InjectBsrAsm_Unix_X64(ref destination, ref length);
+                else
+                    InjectBsrAsm_Unix_X86(ref destination, ref length);
 #endif
+            }
+            else
+                InjectBsrAsm_Windows(ref destination, ref length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectBsrAsm_Windows(ref void* destination, ref uint length)
+        {
+            const int Length = 3;
+            ReadOnlySpan<byte> data = [
+                0x0F, 0xBD, 0xC1 // bsr eax, ecx
+            ];
+            if (length < Length)
+                throw new AccessViolationException();
+            destination = (byte*)destination + length - Length;
+            fixed (byte* source = data)
+                UnsafeHelper.CopyBlock(destination, source, Length);
+            length = Length;
+        }
+
+#if B32_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectBsrAsm_Unix_X86(ref void* destination, ref uint length)
+        {
+            const int Length = 5;
+            ReadOnlySpan<byte> data = [
+                0x0F, 0xBD, 0x44, 0x24, 0x04 // bsr eax, dword ptr [esp+4]
+            ];
+            if (length < Length)
+                throw new AccessViolationException();
+            destination = (byte*)destination + length - Length;
+            fixed (byte* source = data)
+                UnsafeHelper.CopyBlock(destination, source, Length);
+            length = Length;
+        }
+#endif
+
+#if B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectBsrAsm_Unix_X64(ref void* destination, ref uint length)
+        {
+            const int Length = 3;
+            ReadOnlySpan<byte> data = [
+                0x0F, 0xBD, 0xC7 // bsr eax, edi
+            ];
+            if (length < Length)
+                throw new AccessViolationException();
+            destination = (byte*)destination + length - Length;
+            fixed (byte* source = data)
+                UnsafeHelper.CopyBlock(destination, source, Length);
+            length = Length;
+        }
+#endif
+    }
 }
+#endif
 #endif

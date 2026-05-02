@@ -4,20 +4,14 @@ using InlineMethod;
 namespace System.Runtime.Intrinsics.X86;
 
 /// <summary>Provides access to the x86 base hardware instructions via intrinsics.</summary>
-public static partial class X86Base
+public abstract partial class X86Base
 {
+    internal X86Base() { }
+
     /// <summary>Gets a value that indicates whether the APIs in this class are supported.</summary>
     /// <value><see langword="true" /> if the APIs are supported; otherwise, <see langword="false" />.</value>
     /// <remarks>A value of <see langword="false" /> indicates that the APIs will throw <see cref="PlatformNotSupportedException" />.</remarks>
     public static partial bool IsSupported { get; }
-
-    /// <summary>
-    ///   <para>void __cpuidex (int cpuInfo[4], int function_id, int subfunction_id = 0);</para>
-    ///   <para>  CPUID</para>
-    /// </summary>
-    [Inline(InlineBehavior.Keep, export: true)]
-    public static (int Eax, int Ebx, int Ecx, int Edx) CpuId(int functionId)
-        => CpuId(functionId, subFunctionId: 0);
 
     /// <summary>
     ///   <para>void __cpuidex (int cpuInfo[4], int function_id, int subfunction_id);</para>
@@ -39,12 +33,6 @@ public static partial class X86Base
     /// </summary>
     public static partial uint BitScanReverse(uint value);
 
-    /// <summary>  IDIV reg/m</summary>
-    public static partial (int Quotient, int Remainder) DivRem(long dividend, int divisor);
-
-    /// <summary>  DIV reg/m</summary>
-    public static partial (uint Quotient, uint Remainder) DivRem(ulong dividend, uint divisor);
-
     /// <summary>
     ///   <para>unsigned _udiv64(unsigned __int64 dividend, unsigned divisor, unsigned* remainder)</para>
     ///   <para>  DIV reg/m32</para>
@@ -62,5 +50,11 @@ public static partial class X86Base
 
     /// <summary>  DIV reg/m</summary>
     public static partial (nuint Quotient, nuint Remainder) DivRem(nuint lower, nuint upper, nuint divisor);
+
+    /// <summary>
+    /// void _mm_pause (void);
+    ///   PAUSE
+    /// </summary>
+    public static partial void Pause();
 }
 #endif

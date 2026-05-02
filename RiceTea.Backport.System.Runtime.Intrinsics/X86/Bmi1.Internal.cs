@@ -1,18 +1,30 @@
 #if !NETSTANDARD2_1_OR_GREATER
+#if X86_ARCH || ANYCPU
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Helpers;
+using System.Runtime.Intrinsics.Internals;
+using System.Threading;
 
 namespace System.Runtime.Intrinsics.X86;
 
 partial class Bmi1
 {
+    private static readonly object? _tzcntLock;
     private static readonly bool _isSupported;
 
     static Bmi1()
     {
-        if (!CheckIsSupported())
-            return;
-        _isSupported = true;
+        if (CheckIsSupported())
+        {
+            _isSupported = true;
+            _tzcntLock = new object();
+        }
+        else
+        {
+            _isSupported = false;
+            _tzcntLock = null;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -21,10 +33,10 @@ partial class Bmi1
         if (!X86Base.IsSupported)
             return false;
         const int Bmi1Mask = 1 << 3;
-        return (X86Base.CpuId(7, 0).Ebx & Bmi1Mask) == Bmi1Mask;
+        return (CpuId(7, 0).Ebx & Bmi1Mask) == Bmi1Mask;
     }
 
-    public static partial bool IsSupported
+    public static new partial bool IsSupported
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _isSupported;
@@ -32,18 +44,67 @@ partial class Bmi1
 
     [DebuggerHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)]
     public static partial uint TrailingZeroCount(uint value)
     {
         if (!_isSupported)
-            throw new PlatformNotSupportedException();
-        InjectTzcntAsm();
+            ThrowUtils.ThrowPlatformNotSupported();
 
-        return (uint)Fallbacks.TrailingZeroCountSoftwareFallback(value);
+        InjectStart(value);
+        return InjectEnd(Fallbacks.BitScanForward(value));
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)] // 禁止優化參數傳遞
+        static unsafe void InjectStart(uint value)
+        {
+            CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
+            EnterLock();
+        }
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static unsafe uint InjectEnd(uint value)
+        {
+            try
+            {
+                CallSiteInjector.InjectAsm(
+                    startAddress: CallSiteInjector.StartAddress,
+                    endAddress: CallSiteInjector.FindCallSite(),
+                    injectorFunc: &InjectTzcntAsm,
+                    exitLockFunc: &ExitLock);
+                return value;
+            }
+            finally
+            {
+                ExitLock();
+            }
+        }
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void EnterLock() => Monitor.Enter(_tzcntLock!);
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void ExitLock()
+        {
+            try
+            {
+                Monitor.Exit(_tzcntLock!);
+            }
+            catch (SynchronizationLockException)
+            {
+            }
+        }
     }
 
-    private static partial class StoreAsArray { }
+    private abstract partial class StoreAsArray : AssemblyCodeStoreBase { }
 
-    private static partial class StoreAsSpan { }
+    private abstract partial class StoreAsSpan : AssemblyCodeStoreBase { }
 }
+#endif
 #endif

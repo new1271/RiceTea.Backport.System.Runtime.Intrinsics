@@ -10,35 +10,37 @@ partial class X86Base
     unsafe partial class X64
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectBsrAsm(ref void* destination, ref uint length)
+        private static void InjectDivAsm(ref void* destination, ref uint length)
         {
 #if ANYCPU
             if (!Helpers.PlatformHelper.IsX64)
                 ThrowUtils.ThrowPlatformNotSupported();
 #endif
             if (SoftDependencyHelper.SystemMemoryExists)
-                StoreAsSpan.InjectBsrAsm(ref destination, ref length);
+                StoreAsSpan.InjectDivAsm(ref destination, ref length);
             else
-                StoreAsArray.InjectBsrAsm(ref destination, ref length);
+                StoreAsArray.InjectDivAsm(ref destination, ref length);
         }
 
         partial class StoreAsArray
         {
             [MethodImpl(MethodImplOptions.NoInlining)]
-            public static void InjectBsrAsm(ref void* destination, ref uint length)
+            public static void InjectDivAsm(ref void* destination, ref uint length)
             {
                 if (IsUnix)
-                    InjectBsrAsm_Unix(ref destination, ref length);
+                    InjectDivAsm_Unix(ref destination, ref length);
                 else
-                    InjectBsrAsm_Windows(ref destination, ref length);
+                    InjectDivAsm_Windows(ref destination, ref length);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static void InjectBsrAsm_Windows(ref void* destination, ref uint length)
+            private static void InjectDivAsm_Windows(ref void* destination, ref uint length)
             {
-                const int Length = 4;
+                const int Length = 9;
                 byte[] data = new byte[Length] {
-                    0x48, 0x0F, 0xBD, 0xC1 // bsr rax, rcx
+                    0x48, 0x89, 0xC8, // mov rax, rcx
+                    0x49, 0xF7, 0xF0, // div r8
+                    0x49, 0x89, 0x11 // mov qword ptr [r9], rdx
                 };
                 if (length < Length)
                     throw new AccessViolationException();
@@ -49,11 +51,15 @@ partial class X86Base
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static void InjectBsrAsm_Unix(ref void* destination, ref uint length)
+            private static void InjectDivAsm_Unix(ref void* destination, ref uint length)
             {
-                const int Length = 4;
+                const int Length = 15;
                 byte[] data = new byte[Length] {
-                    0x48, 0x0F, 0xBD, 0xC7 // bsr rax, rdi
+                    0x48, 0x89, 0xF8, // mov rax, rdi
+                    0x48, 0x89, 0xD7, // mov rdi, rdx
+                    0x48, 0x89, 0xF2, // mov rdx, rsi
+                    0x48, 0xF7, 0xF7, // div rdi
+                    0x48, 0x89, 0x11 // mov qword ptr [rcx], rdx
                 };
                 if (length < Length)
                     throw new AccessViolationException();
@@ -67,20 +73,22 @@ partial class X86Base
         partial class StoreAsSpan
         {
             [MethodImpl(MethodImplOptions.NoInlining)]
-            public static void InjectBsrAsm(ref void* destination, ref uint length)
+            public static void InjectDivAsm(ref void* destination, ref uint length)
             {
                 if (IsUnix)
-                    InjectBsrAsm_Unix(ref destination, ref length);
+                    InjectDivAsm_Unix(ref destination, ref length);
                 else
-                    InjectBsrAsm_Windows(ref destination, ref length);
+                    InjectDivAsm_Windows(ref destination, ref length);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static void InjectBsrAsm_Windows(ref void* destination, ref uint length)
+            private static void InjectDivAsm_Windows(ref void* destination, ref uint length)
             {
-                const int Length = 4;
+                const int Length = 9;
                 ReadOnlySpan<byte> data = [
-                    0x48, 0x0F, 0xBD, 0xC1 // bsr rax, rcx
+                    0x48, 0x89, 0xC8, // mov rax, rcx
+                    0x49, 0xF7, 0xF0, // div r8
+                    0x49, 0x89, 0x11 // mov qword ptr [r9], rdx
                 ];
                 if (length < Length)
                     throw new AccessViolationException();
@@ -91,11 +99,15 @@ partial class X86Base
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static void InjectBsrAsm_Unix(ref void* destination, ref uint length)
+            private static void InjectDivAsm_Unix(ref void* destination, ref uint length)
             {
-                const int Length = 4;
+                const int Length = 15;
                 ReadOnlySpan<byte> data = [
-                    0x48, 0x0F, 0xBD, 0xC7 // bsr rax, rdi
+                    0x48, 0x89, 0xF8, // mov rax, rdi
+                    0x48, 0x89, 0xD7, // mov rdi, rdx
+                    0x48, 0x89, 0xF2, // mov rdx, rsi
+                    0x48, 0xF7, 0xF7, // div rdi
+                    0x48, 0x89, 0x11 // mov qword ptr [rcx], rdx
                 ];
                 if (length < Length)
                     throw new AccessViolationException();

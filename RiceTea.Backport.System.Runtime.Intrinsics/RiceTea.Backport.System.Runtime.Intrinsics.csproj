@@ -6,12 +6,13 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Nullable>enable</Nullable>
 		<LangVersion>14.0</LangVersion>
-		<Platforms>AnyCPU;x64;x86</Platforms>
+		<Platforms>AnyCPU;x64;x86;ARM64</Platforms>
 		<AssemblyTitle>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyTitle>
 		<AssemblyName>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyName>
 		<AssemblyVersion>1.0.0</AssemblyVersion>
 		<Authors>RiceTea</Authors>
 		<PackageId>RiceTea.Backport.System.Runtime.Intrinsics</PackageId>
+		<PackageTags>intrinsics</PackageTags>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
 		<PackageReadmeFile>package_README.md</PackageReadmeFile>
@@ -51,6 +52,10 @@
 		<PackageReference Include="LocalsInit.Fody" Version="1.1.0">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
+		<PackageReference Include="PolySharp" Version="1.15.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 
 		<!-- Only for develop use!-->
 		<PackageReference Include="System.Memory" Version="4.6.3">
@@ -82,14 +87,6 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Platform)'=='AnyCPU'">
-		<DefineConstants>$(DefineConstants);ANYCPU</DefineConstants>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Platform)'=='x86'">
-		<DefineConstants>$(DefineConstants);ANYCPU</DefineConstants>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Platform)'=='x64'">
 		<DefineConstants>$(DefineConstants);ANYCPU</DefineConstants>
 	</PropertyGroup>
 
