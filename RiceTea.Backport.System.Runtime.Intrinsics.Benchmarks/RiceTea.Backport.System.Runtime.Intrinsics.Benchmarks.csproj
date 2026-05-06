@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net472</TargetFramework>
+		<RootNamespace>RiceTea.Benchmark</RootNamespace>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>14.0</LangVersion>
+		<Platforms>AnyCPU;x64;x86;ARM64</Platforms>
+		<Prefer32Bit>false</Prefer32Bit>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\RiceTea.Backport.System.Runtime.Intrinsics\RiceTea.Backport.System.Runtime.Intrinsics.csproj" />
+	</ItemGroup>
+
+</Project>
