@@ -16,7 +16,7 @@ partial class X86Base
         private static void InjectIDivAsm(ref void* destination, ref uint length)
         {
 #if ANYCPU
-            if (!Helpers.PlatformHelper.IsX64)
+            if (!PlatformHelper.IsX64)
                 ThrowUtils.ThrowPlatformNotSupported();
 #endif
             if (SoftDependencyHelper.SystemMemoryExists)

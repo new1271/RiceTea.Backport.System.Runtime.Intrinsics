@@ -54,7 +54,7 @@ unsafe partial class X86Base
                 0x5E, 0x5B,
                 0xC3
             };
-            return AsmCodeHelper.PackAsmCodeIntoNativeMemory(data, Length);
+            return NativeFunctionLoader.LoadIntoMemory(data, Length);
         }
     }
 
@@ -76,7 +76,7 @@ unsafe partial class X86Base
                 0x5E, 0x5B,
                 0xC3
             ];
-            return AsmCodeHelper.PackAsmCodeIntoNativeMemory(data, Length);
+            return NativeFunctionLoader.LoadIntoMemory(data, Length);
         }
     }
 #endif
@@ -124,7 +124,7 @@ unsafe partial class X86Base
                 0x89, 0x49, 0x08, 0x41,
                 0x89, 0x51, 0x0C, 0xC3
             ];
-            return NativeFunctionLoader.LoadAsmCodeIntoMemory(data, Length);
+            return NativeFunctionLoader.LoadIntoMemory(data, Length);
         }
     }
 #endif

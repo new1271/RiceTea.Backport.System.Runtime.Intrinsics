@@ -19,13 +19,13 @@ internal static class PlatformHelper
         IsX64 = UIntPtr.Size == sizeof(ulong);
 #endif
 #else
-        var arch = InteropServices.RuntimeInformation.ProcessArchitecture;
+        var arch = RuntimeInformation.ProcessArchitecture;
         IsX86 = arch switch
         {
-            InteropServices.Architecture.X86 or InteropServices.Architecture.X64 => true,
+            Architecture.X86 or Architecture.X64 => true,
             _ => false,
         };
-        IsX64 = arch == InteropServices.Architecture.X64;
+        IsX64 = arch == Architecture.X64;
 #endif
 
 #if NETCOREAPP3_0_OR_GREATER
