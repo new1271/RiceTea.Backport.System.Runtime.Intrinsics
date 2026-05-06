@@ -44,8 +44,8 @@ partial class X86Base
 
 		[DebuggerHidden]
 		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static partial ulong BitScanForward(ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+        public static partial ulong BitScanForward(ulong value)
 		{
 			if (!_isSupported)
 				ThrowUtils.ThrowPlatformNotSupported();
@@ -96,8 +96,8 @@ partial class X86Base
 
 		[DebuggerHidden]
 		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static partial ulong BitScanReverse(ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+        public static partial ulong BitScanReverse(ulong value)
 		{
 			if (!_isSupported)
 				ThrowUtils.ThrowPlatformNotSupported();
@@ -148,7 +148,7 @@ partial class X86Base
 
         [DebuggerHidden]
         [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
         private static long DivRem(ulong lower, long upper, long divisor, out long rem)
         {
             if (!_isSupported)
@@ -205,7 +205,7 @@ partial class X86Base
 
         [DebuggerHidden]
         [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
         private static ulong DivRem(ulong lower, ulong upper, ulong divisor, out ulong rem)
         {
             if (!_isSupported)

@@ -51,7 +51,7 @@ partial class Bmi1
 
         [DebuggerHidden]
         [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
         public static partial ulong TrailingZeroCount(ulong value)
         {
             if (!_isSupported)

@@ -68,8 +68,8 @@ unsafe partial class X86Base
 
 	[DebuggerHidden]
 	[DebuggerStepThrough]
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static partial uint BitScanForward(uint value)
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    public static partial uint BitScanForward(uint value)
 	{
 		if (!_isSupported)
 			ThrowUtils.ThrowPlatformNotSupported();
@@ -128,8 +128,8 @@ unsafe partial class X86Base
 
 	[DebuggerHidden]
 	[DebuggerStepThrough]
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static partial uint BitScanReverse(uint value)
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    public static partial uint BitScanReverse(uint value)
 	{
 		if (!_isSupported)
 			ThrowUtils.ThrowPlatformNotSupported();
@@ -184,8 +184,8 @@ unsafe partial class X86Base
 
 	[DebuggerHidden]
 	[DebuggerStepThrough]
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static int DivRem(uint lower, int upper, int divisor, out int rem)
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    private static int DivRem(uint lower, int upper, int divisor, out int rem)
     {
 		if (!_isSupported)
 			ThrowUtils.ThrowPlatformNotSupported();
@@ -241,8 +241,8 @@ unsafe partial class X86Base
 
 	[DebuggerHidden]
 	[DebuggerStepThrough]
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static uint DivRem(uint lower, uint upper, uint divisor, out uint rem)
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    private static uint DivRem(uint lower, uint upper, uint divisor, out uint rem)
     {
 		if (!_isSupported)
 			ThrowUtils.ThrowPlatformNotSupported();
@@ -340,7 +340,7 @@ unsafe partial class X86Base
 
     [DebuggerHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
     public static partial void Pause()
     {
         if (!_isSupported)

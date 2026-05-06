@@ -49,7 +49,7 @@ partial class Bmi1
 
     [DebuggerHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
     public static partial uint TrailingZeroCount(uint value)
     {
         if (!_isSupported)
@@ -63,6 +63,7 @@ partial class Bmi1
         [MethodImpl(MethodImplOptions.NoInlining)]
         static unsafe void InjectStart(uint value)
         {
+            Debugger.Log(0, nameof(InjectEnd), new StackTrace().ToString() + "\n");
             CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
             EnterLock();
         }
@@ -74,6 +75,7 @@ partial class Bmi1
         {
             try
             {
+                Debugger.Log(0, nameof(InjectEnd), new StackTrace().ToString() + "\n");
                 CallSiteInjector.Inject(
                     startAddress: CallSiteInjector.StartAddress,
                     endAddress: CallSiteInjector.FindCallSite(),

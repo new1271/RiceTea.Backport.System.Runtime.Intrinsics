@@ -51,8 +51,8 @@ partial class Popcnt
 
 		[DebuggerHidden]
 		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static partial ulong PopCount(ulong value)
+		[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+        public static partial ulong PopCount(ulong value)
 		{
 			if (!_isSupported)
 				ThrowUtils.ThrowPlatformNotSupported();

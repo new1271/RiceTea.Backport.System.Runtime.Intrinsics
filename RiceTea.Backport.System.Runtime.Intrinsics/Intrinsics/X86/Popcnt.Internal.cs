@@ -50,8 +50,8 @@ partial class Popcnt
 
 	[DebuggerHidden]
 	[DebuggerStepThrough]
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	public static partial uint PopCount(uint value)
+	[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    public static partial uint PopCount(uint value)
 	{
 		if (!_isSupported)
 			ThrowUtils.ThrowPlatformNotSupported();
