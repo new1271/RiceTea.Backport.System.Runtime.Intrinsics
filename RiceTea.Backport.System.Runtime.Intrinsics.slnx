@@ -8,12 +8,13 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="RiceTea.Backport.System.Runtime.Intrinsics.Benchmarks/RiceTea.Backport.System.Runtime.Intrinsics.Benchmarks.csproj" Id="ea1fe69d-2df1-4770-853c-961dd7eef676">
-    <Platform Solution="Release|x64" Project="x64" />
-    <Platform Solution="Release|x86" Project="x86" />
-  </Project>
-  <Project Path="RiceTea.Backport.System.Runtime.Intrinsics/RiceTea.Backport.System.Runtime.Intrinsics.csproj">
+  <Project Path="Benchmarks/Benchmarks.csproj" Id="ea1fe69d-2df1-4770-853c-961dd7eef676">
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />
   </Project>
+  <Project Path="System.Runtime.Intrinsics/System.Runtime.Intrinsics.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+  </Project>
+  <Project Path="VEHHook/VEHHook.vcxproj" Id="007e19e5-ebd4-47ad-b18b-e3c7f406be27" />
 </Solution>

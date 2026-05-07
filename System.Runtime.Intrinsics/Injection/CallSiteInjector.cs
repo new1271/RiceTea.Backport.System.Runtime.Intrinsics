@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Threading;
 
 using RiceTea.Backport.Internals;
 
@@ -14,7 +15,7 @@ namespace RiceTea.Backport.Injection;
 /// <summary>
 /// A helper class for injecting machine code into call site.
 /// </summary>
-public static unsafe class CallSiteInjector
+public static unsafe partial class CallSiteInjector
 {
     /// <summary>
     /// The size of x86 CALL instruction
@@ -28,6 +29,11 @@ public static unsafe class CallSiteInjector
     /// The size of x86 JMP short instruction
     /// </summary>
     public const int JumpShortInstructionSize = 2;
+
+    private static readonly bool _isX86 = PlatformHelper.IsX86;
+    private static readonly bool _isWindows = PlatformHelper.IsWindows;
+    private static readonly bool _isUnix = PlatformHelper.IsUnix;
+    private static IntPtr _lastPriorityInstructionHandler;
 
     /// <summary>
     /// A thread-static field to store the start address for injecting
@@ -48,6 +54,9 @@ public static unsafe class CallSiteInjector
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Inject(void* startAddress, void* endAddress, delegate* managed<ref void*, ref uint, void> injectorFunc, delegate* managed<void> exitLockFunc)
     {
+        if (!_isX86 || (!_isWindows && !_isUnix))
+            ThrowUtils.ThrowPlatformNotSupported();
+
         uint length = (uint)((byte*)endAddress - (byte*)startAddress);
         MemoryHelper.LetMemoryPageCanRWX(startAddress, length);
 
@@ -62,9 +71,35 @@ public static unsafe class CallSiteInjector
         byte* injectEndAddress = (byte*)injectAddress + injectLength;
         FillNopInstructions(injectEndAddress, (uint)((byte*)endAddress - injectEndAddress));
 
-        InjectJumpInstruction((byte*)startAddress - JumpInstructionSize, injectAddress); // 建立跳轉
+        HookPriorityInstructionHandler();
+
+        void* jumpInstructionAddress = (byte*)startAddress - CallInstructionSize;
+        InjectHaltInstruction(jumpInstructionAddress); //建立中繼 HALT 指令(通過無效指令攔截來實現自旋，以避免撕裂讀取)
+        InjectJumpInstruction(jumpInstructionAddress, injectAddress); // 建立跳轉
 
         MemoryHelper.FlushInstructionCache(startAddress, length);
+    }
+
+    private static void HookPriorityInstructionHandler()
+    {
+        ref IntPtr handleRef = ref _lastPriorityInstructionHandler;
+        if (_isWindows)
+        {
+            IntPtr newHandle = Native_Win32.AddVectoredExceptionHandler(First: uint.MaxValue, Handler: VEHHandler.Address);
+            if (newHandle != IntPtr.Zero)
+            {
+                IntPtr oldHandle = Interlocked.Exchange(ref handleRef, newHandle);
+                if (oldHandle != IntPtr.Zero)
+                    Native_Win32.RemoveVectoredExceptionHandler(oldHandle);
+            }
+            return;
+        }
+        if (_isUnix)
+        {
+            // TODO: Implement a signal handler
+        }
+
+        ThrowUtils.ThrowPlatformNotSupported();
     }
 
     /// <summary>
@@ -201,15 +236,21 @@ public static unsafe class CallSiteInjector
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InjectCallInstruction(void* ptr, void* target)
     {
-        *(byte*)ptr = 0xE8;
         *(int*)((byte*)ptr + 1) = (int)((byte*)target - (byte*)ptr) - CallInstructionSize;
+        *(byte*)ptr = 0xE8;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InjectJumpInstruction(void* ptr, void* target)
     {
-        *(byte*)ptr = 0xE9;
         *(int*)((byte*)ptr + 1) = (int)((byte*)target - (byte*)ptr) - JumpInstructionSize;
+        *(byte*)ptr = 0xE9;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void InjectHaltInstruction(void* ptr)
+    {
+        *(byte*)ptr = 0xF4;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -308,8 +349,14 @@ public static unsafe class CallSiteInjector
     [SuppressUnmanagedCodeSecurity]
     private static class Native_Win32
     {
-        [DllImport("ntdll", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("ntdll", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(RtlCaptureStackBackTrace))]
         public static extern ushort RtlCaptureStackBackTrace(uint FramesToSkip, uint FramesToCapture, void* BackTrace, uint* BackTraceHash);
+
+        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(AddVectoredExceptionHandler))]
+        public static extern IntPtr AddVectoredExceptionHandler(uint First, void* Handler);
+
+        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(RemoveVectoredExceptionHandler))]
+        public static extern uint RemoveVectoredExceptionHandler(IntPtr Handle);
     }
 
     [SuppressUnmanagedCodeSecurity]

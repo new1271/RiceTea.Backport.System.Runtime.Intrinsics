@@ -16,7 +16,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\RiceTea.Backport.System.Runtime.Intrinsics\RiceTea.Backport.System.Runtime.Intrinsics.csproj" />
+	  <ProjectReference Include="$(SolutionDir)\System.Runtime.Intrinsics\System.Runtime.Intrinsics.csproj" />
 	</ItemGroup>
 
 </Project>
