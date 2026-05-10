@@ -20,7 +20,7 @@ unsafe partial class X86Base
      * }   
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void* BuildCpuIdAsm()
+    private static NativeFunctionHolder BuildCpuIdAsm()
     {
 #if B64_ARCH
         return BuildCpuIdAsm_X64();
@@ -33,12 +33,12 @@ unsafe partial class X86Base
 
 #if (B32_ARCH || ANYCPU)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void* BuildCpuIdAsm_X86() 
+    private static NativeFunctionHolder BuildCpuIdAsm_X86() 
         => SoftDependencyHelper.SystemMemoryExists ? StoreAsSpan.BuildCpuIdAsm_X86() : StoreAsArray.BuildCpuIdAsm_X86();
 
     partial class StoreAsArray
     {
-        public static void* BuildCpuIdAsm_X86()
+        public static NativeFunctionHolder BuildCpuIdAsm_X86()
         {
             const int Length = 30;
             byte[] data = new byte[Length] {
@@ -60,7 +60,7 @@ unsafe partial class X86Base
 
     partial class StoreAsSpan
     {
-        public static void* BuildCpuIdAsm_X86()
+        public static NativeFunctionHolder BuildCpuIdAsm_X86()
         {
             const int Length = 30;
             ReadOnlySpan<byte> data = [
@@ -83,13 +83,13 @@ unsafe partial class X86Base
 
 #if (B64_ARCH || ANYCPU)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void* BuildCpuIdAsm_X64()
+    private static NativeFunctionHolder BuildCpuIdAsm_X64()
         => SoftDependencyHelper.SystemMemoryExists ? StoreAsSpan.BuildCpuIdAsm_X64() : StoreAsArray.BuildCpuIdAsm_X64();
 
     partial class StoreAsArray
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void* BuildCpuIdAsm_X64()
+        public static NativeFunctionHolder BuildCpuIdAsm_X64()
         {
             const int Length = 36;
             byte[] data = new byte[Length] {
@@ -110,7 +110,7 @@ unsafe partial class X86Base
     partial class StoreAsSpan
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void* BuildCpuIdAsm_X64()
+        public static NativeFunctionHolder BuildCpuIdAsm_X64()
         {
             const int Length = 36;
             ReadOnlySpan<byte> data = [

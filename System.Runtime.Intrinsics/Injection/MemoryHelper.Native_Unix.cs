@@ -13,16 +13,16 @@ unsafe partial class MemoryHelper
     {
         private static readonly void* _cacheflushFunc = GetImportedMethodPointer(null, nameof(cacheflush));
 
-        [DllImport("c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("c", CallingConvention = CallingConvention.Cdecl, EntryPoint = nameof(mmap))]
         public static extern void* mmap(void* ptr, nuint length, ProtectMemoryPageFlags prot, MemoryMapFlags flags, int fd, nint offset);
 
-        [DllImport("c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("c", CallingConvention = CallingConvention.Cdecl, EntryPoint = nameof(mprotect))]
         public static extern int mprotect(void* ptr, nuint length, ProtectMemoryPageFlags flags);
 
-        [DllImport("dl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("dl", CallingConvention = CallingConvention.Cdecl, EntryPoint = nameof(dlopen))]
         private static extern IntPtr dlopen(byte* filename, int flags);
 
-        [DllImport("dl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("dl", CallingConvention = CallingConvention.Cdecl, EntryPoint = nameof(dlsym))]
         private static extern void* dlsym(IntPtr handle, byte* symbol);
 
         private static int cacheflush(void* addr, int nbytes, int cache)
@@ -47,7 +47,7 @@ unsafe partial class MemoryHelper
                 cacheflush(ptr, (int)size, BCACHE);
         }
 
-        private static void* GetImportedMethodPointer(string? dllName, string methodName)
+        public static void* GetImportedMethodPointer(string? dllName, string methodName)
         {
             const int RTLD_NOW = 2;
             const int RTLD_LOCAL = 0;

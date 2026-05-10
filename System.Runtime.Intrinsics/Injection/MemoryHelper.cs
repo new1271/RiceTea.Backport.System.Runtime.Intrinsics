@@ -23,6 +23,31 @@ internal static unsafe partial class MemoryHelper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void* GetFuncAddress_OnlyUnix(string name)
+    {
+        if (!_isUnix)
+            return (void*)ThrowUtils.ThrowPlatformNotSupported<nuint>();
+        return Native_Unix.GetImportedMethodPointer(null, name);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void LetMemoryPageCanRW(void* pageStartAddress, nuint pageSize)
+    {
+        if (_isWindows)
+        {
+            Native_Win32.PageAccessRights dropped;
+            Native_Win32.VirtualProtect(pageStartAddress, pageSize, Native_Win32.PageAccessRights.ReadWrite, &dropped);
+            return;
+        }
+        if (_isUnix)
+        {
+            Native_Unix.mprotect(pageStartAddress, pageSize,
+                Native_Unix.ProtectMemoryPageFlags.CanRead | Native_Unix.ProtectMemoryPageFlags.CanWrite);
+            return;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void LetMemoryPageCanRX(void* pageStartAddress, nuint pageSize)
     {
         if (_isWindows)

@@ -48,6 +48,14 @@ internal static unsafe class UnsafeHelper
     }
 
     [Inline(InlineBehavior.Remove)]
+    public static ref TTo As<TFrom, TTo>(ref TFrom source)
+    {
+        IL.Emit.Ldarg_0();
+        IL.Emit.Ret();
+        throw IL.Unreachable();
+    }
+
+    [Inline(InlineBehavior.Remove)]
     public static TTo As<TFrom, TTo>(TFrom source)
     {
         IL.Emit.Ldarg_0();

@@ -1,12 +1,10 @@
-#pragma warning disable CA2211
-
 using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Security;
 using System.Threading;
+
+using InlineIL;
 
 using RiceTea.Backport.Internals;
 
@@ -31,8 +29,12 @@ public static unsafe partial class CallSiteInjector
     public const int JumpShortInstructionSize = 2;
 
     private static readonly bool _isX86 = PlatformHelper.IsX86;
+    private static readonly bool _isX64 = PlatformHelper.IsX64;
     private static readonly bool _isWindows = PlatformHelper.IsWindows;
     private static readonly bool _isUnix = PlatformHelper.IsUnix;
+    private static readonly bool _isLinux = PlatformHelper.IsLinux;
+    private static readonly bool _isMacOSX = PlatformHelper.IsMacOSX;
+    private static readonly bool _isFreeBSD = PlatformHelper.IsFreeBSD;
     private static IntPtr _lastPriorityInstructionHandler;
 
     /// <summary>
@@ -57,49 +59,35 @@ public static unsafe partial class CallSiteInjector
         if (!_isX86 || (!_isWindows && !_isUnix))
             ThrowUtils.ThrowPlatformNotSupported();
 
+        void* jumpWritingAddress = (byte*)startAddress - CallInstructionSize;
+        if (!_isLinux && !_isWindows)
+        {
+            if (((nuint)jumpWritingAddress % (nuint)UnsafeHelper.PointerSize) != 0) // Not aligned (currently doesn't supported unaligned injection for macOS and FreeBSD)
+                return;
+        }
+
         uint length = (uint)((byte*)endAddress - (byte*)startAddress);
-        MemoryHelper.LetMemoryPageCanRWX(startAddress, length);
+        MemoryHelper.LetMemoryPageCanRWX(startAddress, length); // We should ignore W^X rule here because hot-patching
 
-        InjectCallInstruction(startAddress, exitLockFunc);
+        WriteCallInstruction(startAddress, exitLockFunc);
 
-        byte* offsetedStartAddress = (byte*)startAddress + CallInstructionSize;
+        void* offsetedStartAddress = (byte*)startAddress + CallInstructionSize;
         void* injectAddress = startAddress;
         uint injectLength = length - CallInstructionSize;
-        injectorFunc(ref injectAddress, ref injectLength); // 此處傳入可注入之位址和長度，傳出已注入之位址和注入長度
 
-        FillNopInstructions(offsetedStartAddress, (uint)((byte*)injectAddress - offsetedStartAddress));
-        byte* injectEndAddress = (byte*)injectAddress + injectLength;
-        FillNopInstructions(injectEndAddress, (uint)((byte*)endAddress - injectEndAddress));
+        /*
+         * Input: the address and the length that can be injected
+         * Output: the address and the length that be injected
+         */
+        injectorFunc(ref injectAddress, ref injectLength);
 
-        HookPriorityInstructionHandler();
+        FillNopInstructions(offsetedStartAddress, (uint)((byte*)injectAddress - (byte*)offsetedStartAddress));
+        void* injectEndAddress = (byte*)injectAddress + injectLength;
+        FillNopInstructions(injectEndAddress, (uint)((byte*)endAddress - (byte*)injectEndAddress));
 
-        void* jumpInstructionAddress = (byte*)startAddress - CallInstructionSize;
-        InjectHaltInstruction(jumpInstructionAddress); //建立中繼 HALT 指令(通過無效指令攔截來實現自旋，以避免撕裂讀取)
-        InjectJumpInstruction(jumpInstructionAddress, injectAddress); // 建立跳轉
+        WriteJumpInstruction(jumpWritingAddress, injectAddress);
 
         MemoryHelper.FlushInstructionCache(startAddress, length);
-    }
-
-    private static void HookPriorityInstructionHandler()
-    {
-        ref IntPtr handleRef = ref _lastPriorityInstructionHandler;
-        if (_isWindows)
-        {
-            IntPtr newHandle = Native_Win32.AddVectoredExceptionHandler(First: uint.MaxValue, Handler: VEHHandler.Address);
-            if (newHandle != IntPtr.Zero)
-            {
-                IntPtr oldHandle = Interlocked.Exchange(ref handleRef, newHandle);
-                if (oldHandle != IntPtr.Zero)
-                    Native_Win32.RemoveVectoredExceptionHandler(oldHandle);
-            }
-            return;
-        }
-        if (_isUnix)
-        {
-            // TODO: Implement a signal handler
-        }
-
-        ThrowUtils.ThrowPlatformNotSupported();
     }
 
     /// <summary>
@@ -112,7 +100,7 @@ public static unsafe partial class CallSiteInjector
     public static void* FindCallSite()
     {
         StackFrame frame = new StackFrame(skipFrames: 2);
-        void* callSiteMethodStartAddress = FindRealEntryPoint(frame); // 呼叫 FindCallSite 函數的那個函數的呼叫端
+        void* callSiteMethodStartAddress = FindRealEntryPoint(frame); // the caller of caller for FindCallSite
         int offset = frame.GetNativeOffset();
         if (offset > 0)
             return (byte*)callSiteMethodStartAddress + offset;
@@ -126,7 +114,7 @@ public static unsafe partial class CallSiteInjector
             Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: 0, FramesToCapture: 1, backTraces, null);
             Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: 0, FramesToCapture: 1, backTraces + 1, null);
 
-            ushort captures = Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: backTraces[0] == backTraces[1] ? 2u : 1u, // 跳過這個函數本身和可能存在的 P/Invoke Stub
+            ushort captures = Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: backTraces[0] == backTraces[1] ? 2u : 1u, // Skips self and the P/Invoke stub (if exists)
                  FramesToCapture: 4, backTraces, null);
 
             return Compute(backTraces, captures, callSiteMethodStartAddress, injectEndFuncStartAddress);
@@ -137,7 +125,7 @@ public static unsafe partial class CallSiteInjector
             Native_Unix.backtrace(backTraces, 1);
             Native_Unix.backtrace(backTraces + 1, 1);
 
-            offset = backTraces[0] == backTraces[1] ? 2 : 1; // 跳過這個函數本身和可能存在的 P/Invoke Stub
+            offset = backTraces[0] == backTraces[1] ? 2 : 1; // Skips self and the P/Invoke stub (if exists)
             int limit = offset + 4;
             int captures = Native_Unix.backtrace(backTraces, limit);
             if (captures < 0 || captures > limit)
@@ -151,16 +139,15 @@ public static unsafe partial class CallSiteInjector
 
         static void* Compute(void** backTraces, ushort captures, void* callSiteMethodStartAddress, void* injectEndFuncStartAddress)
         {
-            // 此時 backTraces 內的結構 (圓括號表示可能沒有這層):
-            // (此函數的 JIT Trampoline), 呼叫此函數的 InjectEnd 函數+偏移, (InjectEnd 函數的 JIT Trampoline), 呼叫 InjectEnd 函數的函數+偏移
+            // backTraces:
+            // the JIT trampoline for FindCallSite(if exists) | the method that calling FindCallSite | the JIT trampoline for the method | the caller for the method (+ offset)
             if (captures < 4)
             {
-                // 保守模式 (因為此時 backTraces 內部不完全有效)
                 switch (captures)
                 {
                     case 0:
                     case 1:
-                        throw new InvalidOperationException(); // 不可能
+                        throw new InvalidOperationException(); // Not possible
                     case 2:
                         return backTraces[1];
                     case 3:
@@ -171,7 +158,7 @@ public static unsafe partial class CallSiteInjector
                                 return backTraces[2];
                         }
                     default:
-                        throw new InvalidOperationException(); // 不可能
+                        throw new InvalidOperationException(); // Not possible
                 }
             }
             else
@@ -234,23 +221,106 @@ public static unsafe partial class CallSiteInjector
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InjectCallInstruction(void* ptr, void* target)
+    private static void WriteCallInstruction(void* ptr, void* target)
     {
-        *(int*)((byte*)ptr + 1) = (int)((byte*)target - (byte*)ptr) - CallInstructionSize;
-        *(byte*)ptr = 0xE8;
+        const byte Instruction = 0xE8;
+        RealEntryPoint((byte*)ptr, (byte*)target);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void RealEntryPoint(byte* ptr, byte* target)
+        {
+            int offset = (int)(target - ptr) - CallInstructionSize;
+            int* pOffset = (int*)(ptr + 1);
+
+            if (((nuint)ptr % (nuint)UnsafeHelper.PointerSize) == 0)
+            {
+                if (UnsafeHelper.PointerSize < 5)
+                    goto NotAligned;
+                else
+                    goto Aligned_All;
+            }
+            else
+            {
+                if (*ptr != Instruction || ((nuint)pOffset) % sizeof(int) != 0)
+                    goto NotAligned;
+                else
+                    goto Aligned_Address;
+            }
+
+        NotAligned:
+            WriteHaltInstruction(ptr);
+            *pOffset = offset;
+            *ptr = Instruction;
+            return;
+
+        Aligned_All:
+            nuint val = *(nuint*)ptr;
+            byte* pVal = (byte*)&val;
+            *pVal = Instruction;
+            *(int*)(pVal + 1) = offset;
+            *(nuint*)ptr = val;
+            return;
+
+        Aligned_Address:
+            *pOffset = offset;
+            return;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InjectJumpInstruction(void* ptr, void* target)
+    private static void WriteJumpInstruction(void* ptr, void* target)
     {
-        *(int*)((byte*)ptr + 1) = (int)((byte*)target - (byte*)ptr) - JumpInstructionSize;
-        *(byte*)ptr = 0xE9;
+        const byte Instruction = 0xE9;
+        RealEntryPoint((byte*)ptr, (byte*)target);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void RealEntryPoint(byte* ptr, byte* target)
+        {
+            int offset = (int)(target - ptr) - JumpInstructionSize;
+            int* pOffset = (int*)(ptr + 1);
+
+            if (((nuint)ptr % (nuint)UnsafeHelper.PointerSize) == 0)
+            {
+                if (UnsafeHelper.PointerSize < 5)
+                    goto NotAligned;
+                else
+                    goto Aligned_All;
+            }
+            else
+            {
+                if (*ptr != Instruction || ((nuint)pOffset) % sizeof(int) != 0)
+                    goto NotAligned;
+                else
+                    goto Aligned_Address;
+            }
+
+        NotAligned:
+            WriteHaltInstruction(ptr);
+            *pOffset = offset;
+            *ptr = Instruction;
+            return;
+
+        Aligned_All:
+            nuint val = *(nuint*)ptr;
+            byte* pVal = (byte*)&val;
+            *pVal = Instruction;
+            *(int*)(pVal + 1) = offset;
+            *(nuint*)ptr = val;
+            return;
+
+        Aligned_Address:
+            *pOffset = offset;
+            return;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void InjectHaltInstruction(void* ptr)
+    private static void WriteHaltInstruction(void* ptr)
     {
-        *(byte*)ptr = 0xF4;
+        const byte Instruction = 0xF4; // HLT (ring 0 instruction, will be handled by VEH or Signal handler)
+
+        HookPriorityInstructionHandler(); // Hook ring 0 instruction handler
+        *(byte*)ptr = Instruction;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -346,23 +416,39 @@ public static unsafe partial class CallSiteInjector
         }
     }
 
-    [SuppressUnmanagedCodeSecurity]
-    private static class Native_Win32
+    private static void HookPriorityInstructionHandler()
     {
-        [DllImport("ntdll", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(RtlCaptureStackBackTrace))]
-        public static extern ushort RtlCaptureStackBackTrace(uint FramesToSkip, uint FramesToCapture, void* BackTrace, uint* BackTraceHash);
+        ref IntPtr handleRef = ref _lastPriorityInstructionHandler;
+        if (_isWindows)
+        {
+            IntPtr newHandle = Native_Win32.AddVectoredExceptionHandler(First: uint.MaxValue, Handler: VEHHandler.Address);
+            if (newHandle != IntPtr.Zero)
+            {
+                IntPtr oldHandle = Interlocked.Exchange(ref handleRef, newHandle);
+                if (oldHandle != IntPtr.Zero)
+                    Native_Win32.RemoveVectoredExceptionHandler(oldHandle);
+            }
+            return;
+        }
+        if (_isLinux)
+        {
+            RuntimeTypeHandle typeHandle;
+            if (_isX64)
+            {
+                IL.Emit.Ldtoken(typeof(SignalActionRegisterX64));
+                IL.Pop(out typeHandle);
+            }
+            else if (_isX86)
+            {
+                IL.Emit.Ldtoken(typeof(SignalActionRegisterX86));
+                IL.Pop(out typeHandle);
+            }
+            else
+                goto Throw;
+            RuntimeHelpers.RunClassConstructor(typeHandle);
+        }
 
-        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(AddVectoredExceptionHandler))]
-        public static extern IntPtr AddVectoredExceptionHandler(uint First, void* Handler);
-
-        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(RemoveVectoredExceptionHandler))]
-        public static extern uint RemoveVectoredExceptionHandler(IntPtr Handle);
-    }
-
-    [SuppressUnmanagedCodeSecurity]
-    private static class Native_Unix
-    {
-        [DllImport("c", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int backtrace(void** buffer, int size);
+    Throw:
+        ThrowUtils.ThrowPlatformNotSupported();
     }
 }

@@ -4,7 +4,8 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.Helpers;
+
+using RiceTea.Backport.Internals;
 
 namespace System.Runtime.Intrinsics.X86;
 

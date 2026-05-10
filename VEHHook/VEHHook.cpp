@@ -1,18 +1,25 @@
 #include <windows.h>
 
 constexpr BYTE HLT = 0xF4;
-constexpr BYTE JMP = 0xE9;
 
 EXTERN_C __declspec(dllexport)
-LONG __stdcall PvectoredExceptionHandler(
+LONG __stdcall VEHHandler(
 	_EXCEPTION_POINTERS* ExceptionInfo
 )
 {
 	PEXCEPTION_RECORD record = ExceptionInfo->ExceptionRecord;
 	if (record->ExceptionCode != EXCEPTION_PRIV_INSTRUCTION)
 		return EXCEPTION_CONTINUE_SEARCH;
-	BYTE instructionHeader = *(volatile PBYTE)(record->ExceptionAddress);
-	if (instructionHeader == HLT || instructionHeader == JMP)
+	volatile PBYTE address = (volatile PBYTE)record->ExceptionAddress;
+	BYTE instruction = *address;
+	if (instruction != HLT)
 		return EXCEPTION_CONTINUE_EXECUTION;
-	return EXCEPTION_CONTINUE_SEARCH;
+	size_t step = 1;
+	do
+	{
+		for (size_t i = 0; i < step; i++)
+			_mm_pause();
+		step = step < 64 ? step <<= 1 : 64;
+	} while ((instruction = *address) == HLT);
+	return EXCEPTION_CONTINUE_EXECUTION;
 }

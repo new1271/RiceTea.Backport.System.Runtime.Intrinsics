@@ -12,6 +12,10 @@
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />
   </Project>
+  <Project Path="SignalHook/SignalHook.vcxproj" Id="5ee530c1-cdbc-47f8-8471-051f9ff0abba">
+    <Platform Solution="*|x86" Project="x86" />
+    <Deploy />
+  </Project>
   <Project Path="System.Runtime.Intrinsics/System.Runtime.Intrinsics.csproj">
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />

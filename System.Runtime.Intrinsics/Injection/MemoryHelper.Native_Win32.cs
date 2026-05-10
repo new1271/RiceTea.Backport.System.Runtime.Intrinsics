@@ -11,16 +11,16 @@ unsafe partial class MemoryHelper
     {
         private static readonly IntPtr _process = GetCurrentProcess();
 
-        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(GetCurrentProcess))]
         private static extern IntPtr GetCurrentProcess();
 
-        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(VirtualAlloc))]
         public static extern void* VirtualAlloc(void* address, nuint dwSize, MemoryAllocationTypes allocationTypes, PageAccessRights rights);
 
-        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(VirtualProtect))]
         public static extern int VirtualProtect(void* address, nuint dwSize, PageAccessRights rights, PageAccessRights* oldRights);
 
-        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(FlushInstructionCache))]
         private static extern int FlushInstructionCache(IntPtr hProcess, void* lpBaseAddress, nuint dwSize);
 
         public static void FlushInstructionCache(void* address, nuint dwSize)

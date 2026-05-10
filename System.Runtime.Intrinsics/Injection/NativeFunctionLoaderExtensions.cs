@@ -12,7 +12,7 @@ public static class NativeFunctionLoaderExtensions
     {
         /// <inheritdoc cref="NativeFunctionLoader.LoadIntoMemory(byte*, nuint)"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void* LoadIntoMemory(in ReadOnlySpan<byte> source, nuint length)
+        public static unsafe NativeFunctionHolder LoadIntoMemory(in ReadOnlySpan<byte> source, nuint length)
         {
             fixed (byte* ptr = source)
                 return NativeFunctionLoader.LoadIntoMemory(ptr, length);
