@@ -1,6 +1,6 @@
+
 #if NETSTANDARD2_0_OR_GREATER
 #if (X86_ARCH && B64_ARCH) || ANYCPU
-#pragma warning disable IDE0130
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -60,54 +60,50 @@ partial class Popcnt
 			InjectStart(value);
 			return InjectEnd(Fallbacks.PopCount(value));
 
-			[DebuggerHidden]
-			[DebuggerStepThrough]
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			static unsafe void InjectStart(ulong value)
-			{
-				CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
-				EnterLock();
-			}
+            [DebuggerHidden]
+            [DebuggerStepThrough]
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static unsafe void InjectStart(ulong value)
+            {
+                void* address = CallSiteInjector.FindCallSite();
+                ThreadStatics.StartAddress = address;
+                CallSiteInjector.EnterAddressLock(address);
+            }
 
-			[DebuggerHidden]
-			[DebuggerStepThrough]
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			static unsafe ulong InjectEnd(ulong value)
-			{
-				try
-				{
-					CallSiteInjector.Inject(
-						startAddress: CallSiteInjector.StartAddress,
-						endAddress: CallSiteInjector.FindCallSite(),
-						injectorFunc: &InjectPopcntAsm,
-						exitLockFunc: &ExitLock);
-					return value;
-				}
-				finally
-				{
-					ExitLock();
-				}
-			}
+            [DebuggerHidden]
+            [DebuggerStepThrough]
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static unsafe ulong InjectEnd(ulong value)
+            {
+                try
+                {
+                    CallSiteInjector.Inject(
+                        startAddress: ThreadStatics.StartAddress,
+                        endAddress: CallSiteInjector.FindCallSite(),
+                        injectorFunc: &InjectPopcntAsm,
+                        exitLockFunc: &ExitLock);
+                    return value;
+                }
+                finally
+                {
+                    ExitLock();
+                }
+            }
 
-			[DebuggerHidden]
-			[DebuggerStepThrough]
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void EnterLock() => Monitor.Enter(_popcntLock!);
-
-			[DebuggerHidden]
-			[DebuggerStepThrough]
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void ExitLock()
-			{
-				try
-				{
-					Monitor.Exit(_popcntLock!);
-				}
-				catch (SynchronizationLockException)
-				{
-				}
-			}
-		}
+            [DebuggerHidden]
+            [DebuggerStepThrough]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static unsafe void ExitLock()
+            {
+                try
+                {
+                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+                }
+                catch (SynchronizationLockException)
+                {
+                }
+            }
+        }
 
 		private abstract partial class StoreAsArray : AssemblyCodeStoreBase.X64 { }
 

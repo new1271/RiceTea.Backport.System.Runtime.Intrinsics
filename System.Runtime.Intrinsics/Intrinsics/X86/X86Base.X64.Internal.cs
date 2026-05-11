@@ -1,8 +1,9 @@
+
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_0
 #if (X86_ARCH && B64_ARCH) || ANYCPU
-#pragma warning disable IDE0130
 
 using System.Diagnostics;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -17,27 +18,11 @@ partial class X86Base
 {
 	unsafe partial class X64
     {
-        private static readonly object? _bsfLock, _bsrLock, _idivLock, _divLock;
         private static readonly bool _isSupported;
 
 		static X64()
 		{
-            if (PlatformHelper.IsX64)
-            {
-                _isSupported = true;
-                _bsfLock = new object();
-                _bsrLock = new object();
-                _idivLock = new object();
-                _divLock = new object();
-            }
-            else
-            {
-                _isSupported = false;
-                _bsfLock = null;
-                _bsrLock = null;
-                _idivLock = null;
-                _divLock = null;
-            }
+            _isSupported = PlatformHelper.IsX64;
         }
 
 		public static partial bool IsSupported => _isSupported;
@@ -56,17 +41,18 @@ partial class X86Base
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			static void InjectStart(ulong value)
 			{
-				CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
-				EnterLock();
-			}
+                void* address = CallSiteInjector.FindCallSite();
+                ThreadStatics.StartAddress = address;
+                CallSiteInjector.EnterAddressLock(address);
+            }
 
-			[MethodImpl(MethodImplOptions.NoInlining)]
+            [MethodImpl(MethodImplOptions.NoInlining)]
 			static ulong InjectEnd(ulong value)
 			{
 				try
 				{
 					CallSiteInjector.Inject(
-						startAddress: CallSiteInjector.StartAddress,
+						startAddress: ThreadStatics.StartAddress,
 						endAddress: CallSiteInjector.FindCallSite(),
 						injectorFunc: &InjectBsfAsm,
 						exitLockFunc: &ExitLock);
@@ -79,16 +65,13 @@ partial class X86Base
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void EnterLock() => Monitor.Enter(_bsfLock!);
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			static void ExitLock()
 			{
 				try
 				{
-					Monitor.Exit(_bsfLock!);
-				}
-				catch (SynchronizationLockException)
+                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+                }
+                catch (SynchronizationLockException)
 				{
 				}
 			}
@@ -108,17 +91,18 @@ partial class X86Base
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			static void InjectStart(ulong value)
 			{
-				CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
-				EnterLock();
-			}
+                void* address = CallSiteInjector.FindCallSite();
+                ThreadStatics.StartAddress = address;
+                CallSiteInjector.EnterAddressLock(address);
+            }
 
-			[MethodImpl(MethodImplOptions.NoInlining)]
+            [MethodImpl(MethodImplOptions.NoInlining)]
 			static ulong InjectEnd(ulong value)
 			{
 				try
 				{
 					CallSiteInjector.Inject(
-						startAddress: CallSiteInjector.StartAddress,
+						startAddress: ThreadStatics.StartAddress,
 						endAddress: CallSiteInjector.FindCallSite(),
 						injectorFunc: &InjectBsrAsm,
 						exitLockFunc: &ExitLock);
@@ -131,16 +115,13 @@ partial class X86Base
 			}
 
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void EnterLock() => Monitor.Enter(_bsrLock!);
-
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			static void ExitLock()
 			{
 				try
 				{
-					Monitor.Exit(_bsrLock!);
-				}
-				catch (SynchronizationLockException)
+                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+                }
+                catch (SynchronizationLockException)
 				{
 				}
 			}
@@ -163,8 +144,9 @@ partial class X86Base
             static void InjectStart(ulong lower, long upper, long divisor, out long rem)
             {
                 rem = 0;
-                CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
-                EnterLock();
+                void* address = CallSiteInjector.FindCallSite();
+                ThreadStatics.StartAddress = address;
+                CallSiteInjector.EnterAddressLock(address);
             }
 
             [DebuggerHidden]
@@ -175,7 +157,7 @@ partial class X86Base
                 try
                 {
                     CallSiteInjector.Inject(
-                        startAddress: CallSiteInjector.StartAddress,
+                        startAddress: ThreadStatics.StartAddress,
                         endAddress: CallSiteInjector.FindCallSite(),
                         injectorFunc: &InjectIDivAsm,
                         exitLockFunc: &ExitLock);
@@ -188,14 +170,11 @@ partial class X86Base
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static void EnterLock() => Monitor.Enter(_idivLock!);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static void ExitLock()
             {
                 try
                 {
-                    Monitor.Exit(_idivLock!);
+                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
                 }
                 catch (SynchronizationLockException)
                 {
@@ -220,8 +199,9 @@ partial class X86Base
             static void InjectStart(ulong lower, ulong upper, ulong divisor, out ulong rem)
             {
                 rem = 0;
-                CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
-                EnterLock();
+                void* address = CallSiteInjector.FindCallSite();
+                ThreadStatics.StartAddress = address;
+                CallSiteInjector.EnterAddressLock(address);
             }
 
             [DebuggerHidden]
@@ -232,7 +212,7 @@ partial class X86Base
                 try
                 {
                     CallSiteInjector.Inject(
-                        startAddress: CallSiteInjector.StartAddress,
+                        startAddress: ThreadStatics.StartAddress,
                         endAddress: CallSiteInjector.FindCallSite(),
                         injectorFunc: &InjectDivAsm,
                         exitLockFunc: &ExitLock);
@@ -245,14 +225,11 @@ partial class X86Base
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static void EnterLock() => Monitor.Enter(_divLock!);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static void ExitLock()
             {
                 try
                 {
-                    Monitor.Exit(_divLock!);
+                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
                 }
                 catch (SynchronizationLockException)
                 {

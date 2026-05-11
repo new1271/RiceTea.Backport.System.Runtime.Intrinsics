@@ -1,4 +1,3 @@
-#pragma warning disable CA2211
 
 using System;
 using System.Net;

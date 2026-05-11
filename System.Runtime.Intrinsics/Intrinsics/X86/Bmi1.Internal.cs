@@ -1,6 +1,6 @@
+
 #if NETSTANDARD2_0_OR_GREATER
 #if X86_ARCH || ANYCPU
-#pragma warning disable IDE0130
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -15,21 +15,11 @@ namespace System.Runtime.Intrinsics.X86;
 
 partial class Bmi1
 {
-    private static readonly object? _tzcntLock;
     private static readonly bool _isSupported;
 
     static Bmi1()
     {
-        if (CheckIsSupported())
-        {
-            _isSupported = true;
-            _tzcntLock = new object();
-        }
-        else
-        {
-            _isSupported = false;
-            _tzcntLock = null;
-        }
+        _isSupported = CheckIsSupported();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -63,9 +53,9 @@ partial class Bmi1
         [MethodImpl(MethodImplOptions.NoInlining)]
         static unsafe void InjectStart(uint value)
         {
-            Debugger.Log(0, nameof(InjectEnd), new StackTrace().ToString() + "\n");
-            CallSiteInjector.StartAddress = CallSiteInjector.FindCallSite();
-            EnterLock();
+            void* address = CallSiteInjector.FindCallSite();
+            ThreadStatics.StartAddress = address;
+            CallSiteInjector.EnterAddressLock(address);
         }
 
         [DebuggerHidden]
@@ -75,9 +65,8 @@ partial class Bmi1
         {
             try
             {
-                Debugger.Log(0, nameof(InjectEnd), new StackTrace().ToString() + "\n");
                 CallSiteInjector.Inject(
-                    startAddress: CallSiteInjector.StartAddress,
+                    startAddress: ThreadStatics.StartAddress,
                     endAddress: CallSiteInjector.FindCallSite(),
                     injectorFunc: &InjectTzcntAsm,
                     exitLockFunc: &ExitLock);
@@ -92,16 +81,11 @@ partial class Bmi1
         [DebuggerHidden]
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void EnterLock() => Monitor.Enter(_tzcntLock!);
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock()
+        static unsafe void ExitLock()
         {
             try
             {
-                Monitor.Exit(_tzcntLock!);
+                CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
             }
             catch (SynchronizationLockException)
             {

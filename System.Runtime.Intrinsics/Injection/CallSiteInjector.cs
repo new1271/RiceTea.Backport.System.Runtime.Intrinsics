@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -30,18 +32,14 @@ public static unsafe partial class CallSiteInjector
 
     private static readonly bool _isX86 = PlatformHelper.IsX86;
     private static readonly bool _isX64 = PlatformHelper.IsX64;
+    private static readonly bool _isMono = PlatformHelper.IsMono;
     private static readonly bool _isWindows = PlatformHelper.IsWindows;
     private static readonly bool _isUnix = PlatformHelper.IsUnix;
     private static readonly bool _isLinux = PlatformHelper.IsLinux;
     private static readonly bool _isMacOSX = PlatformHelper.IsMacOSX;
     private static readonly bool _isFreeBSD = PlatformHelper.IsFreeBSD;
+    private static readonly ConcurrentDictionary<nuint, StrongBox<nuint>> _addressLockDict = new();
     private static IntPtr _lastPriorityInstructionHandler;
-
-    /// <summary>
-    /// A thread-static field to store the start address for injecting
-    /// </summary>
-    [ThreadStatic]
-    public static void* StartAddress;
 
     /// <summary>
     /// Inject machine code into specific memory area.
@@ -50,6 +48,7 @@ public static unsafe partial class CallSiteInjector
     /// <param name="endAddress">The end address for the injecting area.</param>
     /// <param name="injectorFunc">The machine code injector function.</param>
     /// <param name="exitLockFunc">The sync-lock exiting function.</param>
+    /// <exception cref="PlatformNotSupportedException">The platform is not supported.</exception>
     /// <remarks>
     /// The <paramref name="startAddress"/> and <paramref name="endAddress"/> is also included.
     /// </remarks>
@@ -59,12 +58,8 @@ public static unsafe partial class CallSiteInjector
         if (!_isX86 || (!_isWindows && !_isUnix))
             ThrowUtils.ThrowPlatformNotSupported();
 
-        void* jumpWritingAddress = (byte*)startAddress - CallInstructionSize;
-        if (!_isLinux && !_isWindows)
-        {
-            if (((nuint)jumpWritingAddress % (nuint)UnsafeHelper.PointerSize) != 0) // Not aligned (currently doesn't supported unaligned injection for macOS and FreeBSD)
-                return;
-        }
+        if (startAddress is null || startAddress >= endAddress)
+            return;
 
         uint length = (uint)((byte*)endAddress - (byte*)startAddress);
         MemoryHelper.LetMemoryPageCanRWX(startAddress, length); // We should ignore W^X rule here because hot-patching
@@ -85,95 +80,117 @@ public static unsafe partial class CallSiteInjector
         void* injectEndAddress = (byte*)injectAddress + injectLength;
         FillNopInstructions(injectEndAddress, (uint)((byte*)endAddress - (byte*)injectEndAddress));
 
-        WriteJumpInstruction(jumpWritingAddress, injectAddress);
+        void* jumpWritingAddress = (byte*)startAddress - CallInstructionSize;
+        // Windows, Linux and the case that jumpWritingAddress is aligned,
+        // can be written jump instruction to skip nop sequence
+        if (_isLinux || _isWindows || ((nuint)jumpWritingAddress % (nuint)UnsafeHelper.PointerSize) == 0)
+            goto WriteJump;
+        goto Tail;
 
+    WriteJump:
+        WriteJumpInstruction(jumpWritingAddress, injectAddress);
+        goto Tail;
+
+    Tail:
         MemoryHelper.FlushInstructionCache(startAddress, length);
     }
 
     /// <summary>
     /// Find the call site for the calling function.
     /// </summary>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException">Failed to find the call site.</exception>
-    /// <exception cref="PlatformNotSupportedException">The platform is not supported.</exception>
+    /// <returns>if found, the result is a pointer to the call site. otherwise be <see langword="null"/>.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void* FindCallSite()
     {
-        StackFrame frame = new StackFrame(skipFrames: 2);
-        void* callSiteMethodStartAddress = FindRealEntryPoint(frame); // the caller of caller for FindCallSite
-        int offset = frame.GetNativeOffset();
-        if (offset > 0)
-            return (byte*)callSiteMethodStartAddress + offset;
+        if (_isMono)
+            goto Failed;
 
-        frame = new StackFrame(skipFrames: 1);
-        void* injectEndFuncStartAddress = FindRealEntryPoint(frame);
-
-        if (PlatformHelper.IsWindows)
+        if (_isX64)
         {
+            IL.Emit.Ldtoken(new MethodRef(typeof(CallSiteInjector), nameof(FindCallSite)));
+            IL.Pop(out RuntimeMethodHandle handle);
+            void* baseAddressOfFindCallSite = (void*)handle.GetFunctionPointer();
             void** backTraces = stackalloc void*[4];
-            Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: 0, FramesToCapture: 1, backTraces, null);
-            Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: 0, FramesToCapture: 1, backTraces + 1, null);
-
-            ushort captures = Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: backTraces[0] == backTraces[1] ? 2u : 1u, // Skips self and the P/Invoke stub (if exists)
-                 FramesToCapture: 4, backTraces, null);
-
-            return Compute(backTraces, captures, callSiteMethodStartAddress, injectEndFuncStartAddress);
-        }
-        if (PlatformHelper.IsUnix)
-        {
-            void** backTraces = stackalloc void*[6];
-            Native_Unix.backtrace(backTraces, 1);
-            Native_Unix.backtrace(backTraces + 1, 1);
-
-            offset = backTraces[0] == backTraces[1] ? 2 : 1; // Skips self and the P/Invoke stub (if exists)
-            int limit = offset + 4;
-            int captures = Native_Unix.backtrace(backTraces, limit);
-            if (captures < 0 || captures > limit)
-                throw new InvalidOperationException();
-
-            return Compute(backTraces + offset, (ushort)(captures - offset), callSiteMethodStartAddress, injectEndFuncStartAddress);
-        }
-
-        ThrowUtils.ThrowPlatformNotSupported();
-        return default;
-
-        static void* Compute(void** backTraces, ushort captures, void* callSiteMethodStartAddress, void* injectEndFuncStartAddress)
-        {
-            // backTraces:
-            // the JIT trampoline for FindCallSite(if exists) | the method that calling FindCallSite | the JIT trampoline for the method | the caller for the method (+ offset)
-            if (captures < 4)
+            ushort captures;
+            if (_isWindows)
             {
-                switch (captures)
-                {
-                    case 0:
-                    case 1:
-                        throw new InvalidOperationException(); // Not possible
-                    case 2:
-                        return backTraces[1];
-                    case 3:
-                        {
-                            if (((byte*)backTraces[1] - (byte*)callSiteMethodStartAddress) < ((byte*)backTraces[2] - (byte*)callSiteMethodStartAddress))
-                                return backTraces[1];
-                            else
-                                return backTraces[2];
-                        }
-                    default:
-                        throw new InvalidOperationException(); // Not possible
-                }
+                captures = Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: 0, FramesToCapture: 4, backTraces, null);
+                if (captures < 2 || captures > 4)
+                    throw new InvalidOperationException();
+            }
+            else if (_isUnix)
+            {
+                int raw_captures = Native_Unix.backtrace(backTraces, 4);
+                if (raw_captures < 2 || raw_captures > 4)
+                    throw new InvalidOperationException();
+                captures = (ushort)raw_captures;
             }
             else
+                goto Failed;
+            bool hasPInvokeStub = false;
+            void* traceA = backTraces[0];
+            void* traceB = backTraces[1];
+            if (traceA > baseAddressOfFindCallSite)
+                hasPInvokeStub = traceB > baseAddressOfFindCallSite && traceA > traceB;
+            else
+                hasPInvokeStub = true;
+            if (hasPInvokeStub)
             {
-                int backTracesOffset;
-                if (((byte*)backTraces[0] - (byte*)injectEndFuncStartAddress) < ((byte*)backTraces[1] - (byte*)injectEndFuncStartAddress))
-                    backTracesOffset = 1;
-                else
-                    backTracesOffset = 2;
-
-                if (((byte*)backTraces[backTracesOffset] - (byte*)callSiteMethodStartAddress) < ((byte*)backTraces[backTracesOffset + 1] - (byte*)callSiteMethodStartAddress))
-                    return backTraces[backTracesOffset];
-                else
-                    return backTraces[backTracesOffset + 1];
+                if (captures < 4)
+                    throw new InvalidOperationException();
+                return backTraces[3];
             }
+            else
+                return backTraces[2];
+        }
+        if (_isX86)
+        {
+            StackFrame frame = new StackFrame(skipFrames: 2);
+            void* callSiteMethodStartAddress = FindRealEntryPoint(frame); // the caller of caller for FindCallSite
+            int offset = frame.GetNativeOffset();
+            if (offset > 0)
+                return (byte*)callSiteMethodStartAddress + offset;
+        }
+
+    Failed:
+        return null;
+    }
+
+    /// <summary>
+    /// Enter the lock for <paramref name="address"/>
+    /// </summary>
+    /// <remarks>
+    /// if <paramref name="address"/> is null, it wiil just return.
+    /// </remarks>
+    public static void EnterAddressLock(void* address)
+    {
+        if (address is null)
+            return;
+        StrongBox<nuint> counter = _addressLockDict.GetOrAdd((nuint)address, static _ => new StrongBox<nuint>(value: 0));
+        AtomicHelper.Increment(ref counter.Value);
+        Monitor.Enter(counter);
+    }
+
+    /// <summary>
+    /// Leaves the lock for <paramref name="address"/>
+    /// </summary>
+    /// <remarks>
+    /// if <paramref name="address"/> is null, it wiil just return.
+    /// </remarks>
+    public static void LeaveAddressLock(void* address)
+    {
+        if (address is null)
+            return;
+        StrongBox<nuint> counter = _addressLockDict.GetOrAdd((nuint)address, static _ => new StrongBox<nuint>(value: 0));
+        Monitor.Exit(counter);
+        if (AtomicHelper.Decrement(ref counter.Value) == 0)
+        {
+            KeyValuePair<nuint, StrongBox<nuint>> pair = new((nuint)address, counter);
+#if NET5_0_OR_GREATER
+            _addressLockDict.TryRemove(pair);
+#else
+            ((ICollection<KeyValuePair<nuint, StrongBox<nuint>>>)_addressLockDict).Remove(pair);
+#endif
         }
     }
 

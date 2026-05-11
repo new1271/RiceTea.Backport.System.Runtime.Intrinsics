@@ -1,5 +1,5 @@
+
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_0
-#pragma warning disable IDE0130
 
 namespace System.Runtime.Intrinsics.X86;
 

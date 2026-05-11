@@ -70,7 +70,7 @@ public static unsafe partial class NativeFunctionLoader
             _pageStartAddress = null;
             _pageNextAddress = null;
             _pageEndAddress = null;
-            AtomicIncrement(ref _version);
+            AtomicHelper.Increment(ref _version);
         }
     }
 
@@ -87,7 +87,7 @@ public static unsafe partial class NativeFunctionLoader
             _pageStartAddress = null;
             _pageNextAddress = null;
             _pageEndAddress = null;
-            AtomicIncrement(ref _version);
+            AtomicHelper.Increment(ref _version);
         }
     }
 
@@ -114,7 +114,7 @@ public static unsafe partial class NativeFunctionLoader
         _pageStartAddress = result;
         _pageNextAddress = result + CeilDiv(requestedSize, AddressAlignment) * AddressAlignment;
         _pageEndAddress = result + pageSize;
-        AtomicIncrement(ref _version);
+        AtomicHelper.Increment(ref _version);
 
     Result:
         return result;
@@ -127,53 +127,14 @@ public static unsafe partial class NativeFunctionLoader
         return quotient + (((a - quotient * b) != 0) ? 1u : 0u);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static nuint AtomicIncrement(ref nuint reference)
-        => UnsafeHelper.PointerSizeConstant switch
-        {
-            sizeof(int) => UnsafeHelper.As<int, nuint>(Interlocked.Increment(ref UnsafeHelper.As<nuint, int>(ref reference))),
-            sizeof(long) => UnsafeHelper.As<long, nuint>(Interlocked.Increment(ref UnsafeHelper.As<nuint, long>(ref reference))),
-            UnsafeHelper.PointerSizeConstant_Indeterminate => UnsafeHelper.PointerSize switch
-            {
-                sizeof(int) => UnsafeHelper.As<int, nuint>(Interlocked.Increment(ref UnsafeHelper.As<nuint, int>(ref reference))),
-                sizeof(long) => UnsafeHelper.As<long, nuint>(Interlocked.Increment(ref UnsafeHelper.As<nuint, long>(ref reference))),
-                _ => ThrowUtils.ThrowPlatformNotSupported<nuint>()
-            },
-            _ => ThrowUtils.ThrowPlatformNotSupported<nuint>()
-        };
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static nuint AtomicDecrement(ref nuint reference)
-        => UnsafeHelper.PointerSizeConstant switch
-        {
-            sizeof(int) => UnsafeHelper.As<int, nuint>(Interlocked.Decrement(ref UnsafeHelper.As<nuint, int>(ref reference))),
-            sizeof(long) => UnsafeHelper.As<long, nuint>(Interlocked.Decrement(ref UnsafeHelper.As<nuint, long>(ref reference))),
-            UnsafeHelper.PointerSizeConstant_Indeterminate => UnsafeHelper.PointerSize switch
-            {
-                sizeof(int) => UnsafeHelper.As<int, nuint>(Interlocked.Decrement(ref UnsafeHelper.As<nuint, int>(ref reference))),
-                sizeof(long) => UnsafeHelper.As<long, nuint>(Interlocked.Decrement(ref UnsafeHelper.As<nuint, long>(ref reference))),
-                _ => ThrowUtils.ThrowPlatformNotSupported<nuint>()
-            },
-            _ => ThrowUtils.ThrowPlatformNotSupported<nuint>()
-        };
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte* AtomicRead(ref byte* reference)
-    {
-        IL.Emit.Ldarg_0();
-        IL.Emit.Call(new MethodRef(typeof(Volatile), nameof(Volatile.Read), TypeRef.Type<UIntPtr>().MakeByRefType()));
-        IL.Emit.Ret();
-        throw IL.Unreachable();
-    }
-
     internal static bool CheckIsInCurrentPage(void* address)
     {
         nuint version = Volatile.Read(ref _version);
         byte* pageStartAddress, pageEndAddress;
         do
         {
-            pageStartAddress = AtomicRead(ref _pageStartAddress);
-            pageEndAddress = AtomicRead(ref _pageEndAddress);
+            pageStartAddress = AtomicHelper.Read(ref _pageStartAddress);
+            pageEndAddress = AtomicHelper.Read(ref _pageEndAddress);
             nuint newVersion = Volatile.Read(ref _version);
             if (version == newVersion)
                 break;
@@ -185,7 +146,7 @@ public static unsafe partial class NativeFunctionLoader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void EnterReaderLock()
     {
-        AtomicIncrement(ref _readerCounter);
+        AtomicHelper.Increment(ref _readerCounter);
         SpinWait.SpinUntil(static () => (nuint)Volatile.Read(ref _writerFlag) == 0u);
     }
 
@@ -198,7 +159,7 @@ public static unsafe partial class NativeFunctionLoader
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void LeaveReaderLock() => AtomicDecrement(ref _readerCounter);
+    internal static void LeaveReaderLock() => AtomicHelper.Decrement(ref _readerCounter);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void LeaveWriterLock()

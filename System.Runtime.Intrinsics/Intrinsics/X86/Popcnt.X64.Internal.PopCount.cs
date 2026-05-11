@@ -1,6 +1,6 @@
+
 #if NETSTANDARD2_0_OR_GREATER
 #if (X86_ARCH && B64_ARCH) || ANYCPU
-#pragma warning disable IDE0130
 
 using System.Runtime.CompilerServices;
 
