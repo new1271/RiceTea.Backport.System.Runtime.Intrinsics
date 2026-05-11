@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 using BenchmarkDotNet.Attributes;
 
 using Fallbacks = RiceTea.Backport.Fallbacks.X86.Popcnt.X64;
@@ -16,7 +18,6 @@ public class PopcntTest64
         byte[] buffer = new byte[sizeof(ulong)];
         ThreadLocals.Random.NextBytes(buffer);
         _number = BitConverter.ToUInt64(buffer, 0);
-        HardwareIntrinsic(); // Pre-injection
     }
 
     [Benchmark(Baseline = true)]

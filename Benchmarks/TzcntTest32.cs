@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
 using BenchmarkDotNet.Attributes;
 
 using Fallbacks = RiceTea.Backport.Fallbacks.X86.Bmi1;
@@ -16,7 +19,6 @@ public class TzcntTest32
         byte[] buffer = new byte[sizeof(uint)];
         ThreadLocals.Random.NextBytes(buffer);
         _number = BitConverter.ToUInt32(buffer, 0);
-        HardwareIntrinsic(); // Pre-injection
     }
 
     [Benchmark(Baseline = true)]
