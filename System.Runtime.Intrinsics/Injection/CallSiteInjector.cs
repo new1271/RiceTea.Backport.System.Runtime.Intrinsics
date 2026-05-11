@@ -105,52 +105,23 @@ public static unsafe partial class CallSiteInjector
         if (_isMono)
             goto Failed;
 
-        if (_isX64)
+        if (!StackFrameTool.IsSupported || !StackFrameTool.TryGetNativeFrame(skipFrames: 2, out RuntimeMethodHandle handle, out int offset))
         {
-            IL.Emit.Ldtoken(new MethodRef(typeof(CallSiteInjector), nameof(FindCallSite)));
-            IL.Pop(out RuntimeMethodHandle handle);
-            void* baseAddressOfFindCallSite = (void*)handle.GetFunctionPointer();
-            void** backTraces = stackalloc void*[4];
-            ushort captures;
-            if (_isWindows)
-            {
-                captures = Native_Win32.RtlCaptureStackBackTrace(FramesToSkip: 0, FramesToCapture: 4, backTraces, null);
-                if (captures < 2 || captures > 4)
-                    throw new InvalidOperationException();
-            }
-            else if (_isUnix)
-            {
-                int raw_captures = Native_Unix.backtrace(backTraces, 4);
-                if (raw_captures < 2 || raw_captures > 4)
-                    throw new InvalidOperationException();
-                captures = (ushort)raw_captures;
-            }
-            else
+            StackFrame frame =
+#if NET5_0_OR_GREATER
+            new StackFrame(skipFrames: 2, needFileInfo: false);
+#else
+            new StackFrame(skipFrames: 2, fNeedFileInfo: false);
+#endif
+            MethodBase? method = frame.GetMethod();
+            if (method is null)
                 goto Failed;
-            bool hasPInvokeStub = false;
-            void* traceA = backTraces[0];
-            void* traceB = backTraces[1];
-            if (traceA > baseAddressOfFindCallSite)
-                hasPInvokeStub = traceB > baseAddressOfFindCallSite && traceA > traceB;
-            else
-                hasPInvokeStub = true;
-            if (hasPInvokeStub)
-            {
-                if (captures < 4)
-                    throw new InvalidOperationException();
-                return backTraces[3];
-            }
-            else
-                return backTraces[2];
+            handle = method.MethodHandle; 
+            offset = frame.GetNativeOffset();
         }
-        if (_isX86)
-        {
-            StackFrame frame = new StackFrame(skipFrames: 2);
-            void* callSiteMethodStartAddress = FindRealEntryPoint(frame); // the caller of caller for FindCallSite
-            int offset = frame.GetNativeOffset();
-            if (offset > 0)
-                return (byte*)callSiteMethodStartAddress + offset;
-        }
+        void* callSiteMethodStartAddress = FindRealEntryPoint(handle); // the caller of caller for FindCallSite
+        if (offset > 0)
+            return (byte*)callSiteMethodStartAddress + offset;
 
     Failed:
         return null;
