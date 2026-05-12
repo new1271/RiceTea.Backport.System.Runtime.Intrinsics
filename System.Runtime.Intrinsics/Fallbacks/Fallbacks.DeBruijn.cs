@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
 
-using RiceTea.Backport.Fallbacks.X86;
 using RiceTea.Backport.Internals;
 
 namespace RiceTea.Backport.Fallbacks;
@@ -28,39 +27,10 @@ partial class Fallbacks
         };
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static int TrailingZeroCount(uint value)
-        {
-            // uint.MaxValue >> 27 is always in range [0 - 31] so we use Unsafe.AddByteOffset to avoid bounds check
-            return UnsafeHelper.AddByteOffset(
-                // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_0111_1100_1011_0101_0011_0001u
-                ref TrailingZeroCountDeBruijn32[0],
-                // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
-                (nuint)(int)(((value & (uint)-(int)value) * 0x077CB531u) >> 27)); // Multi-cast mitigates redundant conv.u8
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static int Log2(uint value)
-        {
-            // Fill trailing zeros with ones, eg 00010010 becomes 00011111
-            value |= value >> 01;
-            value |= value >> 02;
-            value |= value >> 04;
-            value |= value >> 08;
-            value |= value >> 16;
-
-            // uint.MaxValue >> 27 is always in range [0 - 31] so we use Unsafe.AddByteOffset to avoid bounds check
-            return UnsafeHelper.AddByteOffset(
-                // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
-                ref Log2DeBruijn32[0],
-                // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
-                (uint)(int)((value * 0x07C4ACDDu) >> 27));
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
         public static byte QueryTrailingZeroCountTable(nuint index)
         {
             return UnsafeHelper.AddByteOffset(
-                in TrailingZeroCountDeBruijn32[0],
+                ref UnsafeHelper.GetArrayDataReference(TrailingZeroCountDeBruijn32),
                 index);
         }
 
@@ -68,7 +38,7 @@ partial class Fallbacks
         public static byte QueryLog2Table(nuint index)
         {
             return UnsafeHelper.AddByteOffset(
-                in Log2DeBruijn32[0],
+                ref UnsafeHelper.GetArrayDataReference(Log2DeBruijn32),
                 index);
         }
     }
@@ -90,35 +60,6 @@ partial class Fallbacks
             08, 12, 20, 28, 15, 17, 24, 07,
             19, 27, 23, 06, 26, 05, 04, 31
         ];
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static int TrailingZeroCount(uint value)
-        {
-            // uint.MaxValue >> 27 is always in range [0 - 31] so we use Unsafe.AddByteOffset to avoid bounds check
-            return UnsafeHelper.AddByteOffset(
-                // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_0111_1100_1011_0101_0011_0001u
-                in TrailingZeroCountDeBruijn32.GetPinnableReference(),
-                // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
-                (nuint)(int)(((value & (uint)-(int)value) * 0x077CB531u) >> 27)); // Multi-cast mitigates redundant conv.u8
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static int Log2(uint value)
-        {
-            // Fill trailing zeros with ones, eg 00010010 becomes 00011111
-            value |= value >> 01;
-            value |= value >> 02;
-            value |= value >> 04;
-            value |= value >> 08;
-            value |= value >> 16;
-
-            // uint.MaxValue >> 27 is always in range [0 - 31] so we use Unsafe.AddByteOffset to avoid bounds check
-            return UnsafeHelper.AddByteOffset(
-                // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
-                in Log2DeBruijn32.GetPinnableReference(),
-                // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
-                (uint)(int)((value * 0x07C4ACDDu) >> 27));
-        }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static byte QueryTrailingZeroCountTable(nuint index)

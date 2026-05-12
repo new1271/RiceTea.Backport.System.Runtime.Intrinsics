@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 using InlineIL;
 
 using InlineMethod;
@@ -18,6 +21,8 @@ internal static unsafe class UnsafeHelper
 #else
                 = PointerSizeConstant_Indeterminate;
 #endif
+
+    private static readonly bool _isMono = PlatformHelper.IsMono;
 
     public static int PointerSize
     {
@@ -63,6 +68,22 @@ internal static unsafe class UnsafeHelper
         throw IL.Unreachable();
     }
 
+    [Inline(InlineBehavior.Keep, export: true)]
+    public static T As<T>(object source) where T : class
+    {
+        IL.Push(source);
+        return IL.Return<T>();
+    }
+
+    [Inline(InlineBehavior.Keep, export: true)]
+    public static nuint ByteOffsetUnsigned<T>(ref readonly T origin, ref readonly T target)
+    {
+        IL.PushInRef(in target);
+        IL.PushInRef(in origin);
+        IL.Emit.Sub();
+        return IL.Return<nuint>();
+    }
+
     [Inline(InlineBehavior.Remove)]
     public static void CopyBlock(void* destination, void* source, uint byteCount)
     {
@@ -89,4 +110,44 @@ internal static unsafe class UnsafeHelper
         IL.Emit.Ldarg_2();
         IL.Emit.Initblk();
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref T GetArrayDataReference<T>(T[] array)
+    {
+#if NET5_0_OR_GREATER
+        return ref MemoryMarshal.GetArrayDataReference(array);
+#else
+        if (!_isMono)
+            return ref FastRoute(array);
+
+        return ref LegacyArrayHelper.GetReference(array);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ref T FastRoute(T[] array) // 切割方法以誘導 JIT 內聯
+            => ref AddByteOffset(ref As<byte, T>(ref As<RawData>(array).Data), PointerSize);
+#endif
+    }
+
+#if !NET5_0_OR_GREATER
+    [StructLayout(LayoutKind.Sequential)]
+    private sealed class RawData
+    {
+        public byte Data;
+    }
+
+    private static class LegacyArrayHelper
+    {
+        private static readonly nuint Offset = GetFirstElementOffsetOfArray();
+
+        private static nuint GetFirstElementOffsetOfArray()
+        {
+            byte[] array = new byte[1] { default };
+            return ByteOffsetUnsigned(ref As<RawData>(array).Data, ref array[0]);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref T GetReference<T>(T[] array)
+            => ref As<byte, T>(ref AddByteOffset(ref As<RawData>(array).Data, Offset));
+    }
+#endif
 }
