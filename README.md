@@ -34,7 +34,7 @@ Only implements those APIs that I may use<br/>
 ```
 CPU: Intel Core(TM) i7-10700F @ 2.90GHz
 .NET version: .NET Framework 4.8.1 x64
-BDN version: 0.15.7
+BDN version: 0.15.8
 ```
 ### Bmi1.TrailingZeroCount:
 ![TZCNT Compitition](resources/RiceTea.Benchmark.TzcntTest32-barplot.png)
