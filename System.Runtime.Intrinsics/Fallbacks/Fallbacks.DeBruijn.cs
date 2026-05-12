@@ -7,6 +7,7 @@ namespace RiceTea.Backport.Fallbacks;
 
 partial class Fallbacks
 {
+#if NETSTANDARD2_0
     private static class DeBruijn_StoreAsArray
     {
         public static readonly byte[] TrailingZeroCountDeBruijn32 = new byte[sizeof(uint) * 8]
@@ -26,55 +27,40 @@ partial class Fallbacks
             19, 27, 23, 06, 26, 05, 04, 31
         };
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static byte QueryTrailingZeroCountTable(nuint index)
-        {
-            return UnsafeHelper.AddByteOffset(
-                ref UnsafeHelper.GetArrayDataReference(TrailingZeroCountDeBruijn32),
-                index);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref readonly byte GetTrailingZeroCountTableReference()
+            => ref UnsafeHelper.GetReference(TrailingZeroCountDeBruijn32);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static byte QueryLog2Table(nuint index)
-        {
-            return UnsafeHelper.AddByteOffset(
-                ref UnsafeHelper.GetArrayDataReference(Log2DeBruijn32),
-                index);
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref readonly byte GetLog2TableReference()
+            => ref UnsafeHelper.GetReference(Log2DeBruijn32);
     }
+#endif
 
     private static class DeBruijn_StoreAsSpan
     {
-        public static ReadOnlySpan<byte> TrailingZeroCountDeBruijn32 =>
-        [
+        public static ReadOnlySpan<byte> TrailingZeroCountDeBruijn32 => new byte[sizeof(uint) * 8]
+        {
             00, 01, 28, 02, 29, 14, 24, 03,
             30, 22, 20, 15, 25, 17, 04, 08,
             31, 27, 13, 23, 21, 19, 16, 07,
             26, 12, 18, 06, 11, 05, 10, 09
-        ];
+        };
 
-        public static ReadOnlySpan<byte> Log2DeBruijn32 =>
-        [
+        public static ReadOnlySpan<byte> Log2DeBruijn32 => new byte[sizeof(uint) * 8]
+        {
             00, 09, 01, 10, 13, 21, 02, 29,
             11, 14, 16, 18, 22, 25, 03, 30,
             08, 12, 20, 28, 15, 17, 24, 07,
             19, 27, 23, 06, 26, 05, 04, 31
-        ];
+        };
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static byte QueryTrailingZeroCountTable(nuint index)
-        {
-            return UnsafeHelper.AddByteOffset(
-                in TrailingZeroCountDeBruijn32.GetPinnableReference(),
-                index);
-        }
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetTrailingZeroCountTableReference()
+            => ref UnsafeHelper.GetReference(TrailingZeroCountDeBruijn32);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static byte QueryLog2Table(nuint index)
-        {
-            return UnsafeHelper.AddByteOffset(
-                in Log2DeBruijn32.GetPinnableReference(),
-                index);
-        }
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetLog2TableReference()
+            => ref UnsafeHelper.GetReference(Log2DeBruijn32);
     }
 }

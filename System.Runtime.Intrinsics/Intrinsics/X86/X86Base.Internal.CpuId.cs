@@ -30,6 +30,15 @@ partial class X86Base
      *     foo[3] = edx;
      * }    
      */
+
+#if B32_ARCH || ANYCPU
+    private const int CpuIdLength_X86 = 30;
+#endif
+#if B64_ARCH || ANYCPU
+    private const int CpuIdLength_Windows_X64 = 36;
+    private const int CpuIdLength_Unix_X64 = 24;
+#endif
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static NativeFunctionHolder BuildCpuIdAsm()
     {
@@ -42,113 +51,140 @@ partial class X86Base
 #endif
     }
 
-#if (B32_ARCH || ANYCPU)
+#if B32_ARCH || ANYCPU
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static NativeFunctionHolder BuildCpuIdAsm_X86() 
-        => SoftDependencyHelper.SystemMemoryExists ? StoreAsSpan.BuildCpuIdAsm_X86() : StoreAsArray.BuildCpuIdAsm_X86();
-
-    partial class StoreAsArray
+    private static NativeFunctionHolder BuildCpuIdAsm_X86()
     {
-        public static NativeFunctionHolder BuildCpuIdAsm_X86()
-        {
-            const int Length = 30;
-            byte[] data = new byte[Length] {
-                0x8B, 0x44, 0x24, 0x08, 0x8B, 0x4C, 0x24, 0x0C, 
-                0x53, 0x56, 0x8B, 0x74, 0x24, 0x0C, 0x0F, 0xA2, 
-                0x89, 0x06, 0x89, 0x5E, 0x04, 0x89, 0x4E, 0x08, 
-                0x89, 0x56, 0x0C, 0x5E, 0x5B, 0xC3
-            };
-            return NativeFunctionLoader.LoadIntoMemory(data, Length);
-        }
-    }
-
-    partial class StoreAsSpan
-    {
-        public static NativeFunctionHolder BuildCpuIdAsm_X86()
-        {
-            const int Length = 30;
-            ReadOnlySpan<byte> data = [
-                0x8B, 0x44, 0x24, 0x08, 0x8B, 0x4C, 0x24, 0x0C,
-                0x53, 0x56, 0x8B, 0x74, 0x24, 0x0C, 0x0F, 0xA2,
-                0x89, 0x06, 0x89, 0x5E, 0x04, 0x89, 0x4E, 0x08,
-                0x89, 0x56, 0x0C, 0x5E, 0x5B, 0xC3
-            ];
-            return NativeFunctionLoader.LoadIntoMemory(data, Length);
-        }
+#if NETSTANDARD2_0
+        if (!_spanExists)
+            return NativeFunctionLoader.LoadIntoMemoryUnsafe(in StoreAsArray.GetCpuIdDataReference_X86(), CpuIdLength_X86);
+#endif
+        return NativeFunctionLoader.LoadIntoMemoryUnsafe(in StoreAsSpan.GetCpuIdDataReference_X86(), CpuIdLength_X86);
     }
 #endif
 
-#if (B64_ARCH || ANYCPU)
+#if B64_ARCH || ANYCPU
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static NativeFunctionHolder BuildCpuIdAsm_X64()
-        => SoftDependencyHelper.SystemMemoryExists ? StoreAsSpan.BuildCpuIdAsm_X64() : StoreAsArray.BuildCpuIdAsm_X64();
+    {
+        if (_isUnix)
+            return BuildCpuIdAsm_Unix_X64();
+        else
+            return BuildCpuIdAsm_Windows_X64();
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static NativeFunctionHolder BuildCpuIdAsm_Windows_X64()
+    {
+#if NETSTANDARD2_0
+        if (!_spanExists)
+            return NativeFunctionLoader.LoadIntoMemoryUnsafe(in StoreAsArray.GetCpuIdDataReference_Windows_X64(), CpuIdLength_Windows_X64);
+#endif
+        return NativeFunctionLoader.LoadIntoMemoryUnsafe(in StoreAsSpan.GetCpuIdDataReference_Windows_X64(), CpuIdLength_Windows_X64);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static NativeFunctionHolder BuildCpuIdAsm_Unix_X64()
+    {
+#if NETSTANDARD2_0
+        if (!_spanExists)
+            return NativeFunctionLoader.LoadIntoMemoryUnsafe(in StoreAsArray.GetCpuIdDataReference_Unix_X64(), CpuIdLength_Unix_X64);
+#endif
+        return NativeFunctionLoader.LoadIntoMemoryUnsafe(in StoreAsSpan.GetCpuIdDataReference_Unix_X64(), CpuIdLength_Unix_X64);
+    }
+#endif
+
+#if NETSTANDARD2_0
     partial class StoreAsArray
     {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static NativeFunctionHolder BuildCpuIdAsm_X64()
-            => IsUnix ? BuildCpuIdAsm_Unix_X64() : BuildCpuIdAsm_Windows_X64();
+#if B32_ARCH || ANYCPU
+        private static readonly byte[] CpuIdData_X86 = new byte[CpuIdLength_X86]
+        {
+            0x8B, 0x44, 0x24, 0x08, 0x8B, 0x4C, 0x24, 0x0C,
+            0x53, 0x56, 0x8B, 0x74, 0x24, 0x0C, 0x0F, 0xA2,
+            0x89, 0x06, 0x89, 0x5E, 0x04, 0x89, 0x4E, 0x08,
+            0x89, 0x56, 0x0C, 0x5E, 0x5B, 0xC3
+        };
+#endif
+#if B64_ARCH || ANYCPU
+        private static readonly byte[] CpuIdData_Windows_X64 = new byte[CpuIdLength_Windows_X64]
+        {
+            0x48, 0x89, 0x5C, 0x24, 0x08, 0x49, 0x89, 0xC9,
+            0x89, 0xD0, 0x44, 0x89, 0xC1, 0x0F, 0xA2, 0x41,
+            0x89, 0x01, 0x41, 0x89, 0x59, 0x04, 0x48, 0x8B,
+            0x5C, 0x24, 0x08, 0x41, 0x89, 0x49, 0x08, 0x41,
+            0x89, 0x51, 0x0C, 0xC3
+        };
+        private static readonly byte[] CpuIdData_Unix_X64 = new byte[CpuIdLength_Unix_X64]
+        {
+            0x89, 0xD1, 0x89, 0xF0, 0x48, 0x87, 0xDE, 0x0F,
+            0xA2, 0x48, 0x87, 0xDE, 0x89, 0x07, 0x89, 0x77,
+            0x04, 0x89, 0x4F, 0x08, 0x89, 0x57, 0x0C, 0xC3
+        };
+#endif
+
+#if B32_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref readonly byte GetCpuIdDataReference_X86()
+            => ref UnsafeHelper.GetReference(CpuIdData_X86);
+#endif
+
+#if B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ref readonly byte GetCpuIdDataReference_Windows_X64()
+            => ref UnsafeHelper.GetReference(CpuIdData_Windows_X64);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static NativeFunctionHolder BuildCpuIdAsm_Windows_X64()
-        {
-            const int Length = 36;
-            byte[] data = new byte[Length] {
-                0x48, 0x89, 0x5C, 0x24, 0x08, 0x49, 0x89, 0xC9, 
-                0x89, 0xD0, 0x44, 0x89, 0xC1, 0x0F, 0xA2, 0x41,
-                0x89, 0x01, 0x41, 0x89, 0x59, 0x04, 0x48, 0x8B, 
-                0x5C, 0x24, 0x08, 0x41, 0x89, 0x49, 0x08, 0x41, 
-                0x89, 0x51, 0x0C, 0xC3
-            };
-            return NativeFunctionLoader.LoadIntoMemory(data, Length);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static NativeFunctionHolder BuildCpuIdAsm_Unix_X64()
-        {
-            const int Length = 24;
-            byte[] data = new byte[Length] {
-                0x89, 0xD1, 0x89, 0xF0, 0x48, 0x87, 0xDE, 0x0F,
-                0xA2, 0x48, 0x87, 0xDE, 0x89, 0x07, 0x89, 0x77,
-                0x04, 0x89, 0x4F, 0x08, 0x89, 0x57, 0x0C, 0xC3
-            };
-            return NativeFunctionLoader.LoadIntoMemory(data, Length);
-        }
+        public static ref readonly byte GetCpuIdDataReference_Unix_X64()
+            => ref UnsafeHelper.GetReference(CpuIdData_Unix_X64);
+#endif
     }
+#endif
 
     partial class StoreAsSpan
     {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static NativeFunctionHolder BuildCpuIdAsm_X64()
-            => IsUnix ? BuildCpuIdAsm_Unix_X64() : BuildCpuIdAsm_Windows_X64();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static NativeFunctionHolder BuildCpuIdAsm_Windows_X64()
+#if B32_ARCH || ANYCPU
+        private static ReadOnlySpan<byte> CpuIdData_X86 => new byte[CpuIdLength_X86]
         {
-            const int Length = 36;
-            ReadOnlySpan<byte> data = [
-                0x48, 0x89, 0x5C, 0x24, 0x08, 0x49, 0x89, 0xC9,
-                0x89, 0xD0, 0x44, 0x89, 0xC1, 0x0F, 0xA2, 0x41,
-                0x89, 0x01, 0x41, 0x89, 0x59, 0x04, 0x48, 0x8B,
-                0x5C, 0x24, 0x08, 0x41, 0x89, 0x49, 0x08, 0x41,
-                0x89, 0x51, 0x0C, 0xC3
-            ];
-            return NativeFunctionLoader.LoadIntoMemory(data, Length);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static NativeFunctionHolder BuildCpuIdAsm_Unix_X64()
-        {
-            const int Length = 24;
-            ReadOnlySpan<byte> data = [
-                0x89, 0xD1, 0x89, 0xF0, 0x48, 0x87, 0xDE, 0x0F,
-                0xA2, 0x48, 0x87, 0xDE, 0x89, 0x07, 0x89, 0x77,
-                0x04, 0x89, 0x4F, 0x08, 0x89, 0x57, 0x0C, 0xC3
-            ];
-            return NativeFunctionLoader.LoadIntoMemory(data, Length);
-        }
-    }
+            0x8B, 0x44, 0x24, 0x08, 0x8B, 0x4C, 0x24, 0x0C,
+            0x53, 0x56, 0x8B, 0x74, 0x24, 0x0C, 0x0F, 0xA2,
+            0x89, 0x06, 0x89, 0x5E, 0x04, 0x89, 0x4E, 0x08,
+            0x89, 0x56, 0x0C, 0x5E, 0x5B, 0xC3
+        };
 #endif
+#if B64_ARCH || ANYCPU
+        private static ReadOnlySpan<byte> CpuIdData_Windows_X64 => new byte[CpuIdLength_Windows_X64]
+        {
+            0x48, 0x89, 0x5C, 0x24, 0x08, 0x49, 0x89, 0xC9,
+            0x89, 0xD0, 0x44, 0x89, 0xC1, 0x0F, 0xA2, 0x41,
+            0x89, 0x01, 0x41, 0x89, 0x59, 0x04, 0x48, 0x8B,
+            0x5C, 0x24, 0x08, 0x41, 0x89, 0x49, 0x08, 0x41,
+            0x89, 0x51, 0x0C, 0xC3
+        };
+        private static ReadOnlySpan<byte> CpuIdData_Unix_X64 => new byte[CpuIdLength_Unix_X64]
+        {
+            0x89, 0xD1, 0x89, 0xF0, 0x48, 0x87, 0xDE, 0x0F,
+            0xA2, 0x48, 0x87, 0xDE, 0x89, 0x07, 0x89, 0x77,
+            0x04, 0x89, 0x4F, 0x08, 0x89, 0x57, 0x0C, 0xC3
+        };
+#endif
+
+#if B32_ARCH || ANYCPU
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetCpuIdDataReference_X86()
+            => ref UnsafeHelper.GetReference(CpuIdData_X86);
+#endif
+
+#if B64_ARCH || ANYCPU
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetCpuIdDataReference_Windows_X64()
+            => ref UnsafeHelper.GetReference(CpuIdData_Windows_X64);
+
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetCpuIdDataReference_Unix_X64()
+            => ref UnsafeHelper.GetReference(CpuIdData_Unix_X64);
+#endif
+    }
 }
 #endif
 #endif

@@ -19,22 +19,16 @@ namespace System.Runtime.Intrinsics.X86;
 [SuppressUnmanagedCodeSecurity]
 unsafe partial class X86Base
 {
-    private static readonly NativeFunctionHolder _cpuIdAsm;
-    private static readonly bool _isSupported;
+    private static readonly bool _isSupported = PlatformHelper.IsX86;
+    private static readonly bool _isUnix = PlatformHelper.IsUnix && (PlatformHelper.IsX64 || PlatformHelper.IsMono);
+#if ANYCPU
+    private static readonly bool _isX64 = PlatformHelper.IsX64;
+#endif
+#if NETSTANDARD2_0
+    private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
+#endif
 
-    static X86Base()
-    {
-        if (PlatformHelper.IsX86)
-        {
-            _isSupported = true;
-            _cpuIdAsm = BuildCpuIdAsm();
-        }
-        else
-        {
-            _isSupported = false;
-            _cpuIdAsm = default;
-        }
-    }
+    private static NativeFunctionHolder _cpuIdAsm = NativeFunctionHolder.Empty;
 
     public static partial bool IsSupported
     {
@@ -49,8 +43,15 @@ unsafe partial class X86Base
         if (!_isSupported)
             ThrowUtils.ThrowPlatformNotSupported();
 
+        NativeFunctionHolder cpuIdAsm = _cpuIdAsm;
+        if (cpuIdAsm == NativeFunctionHolder.Empty)
+        {
+            cpuIdAsm = BuildCpuIdAsm();
+            _cpuIdAsm = cpuIdAsm;
+        }
+
         Registers registers;
-        using NativeFunctionAccessScope scope = _cpuIdAsm.Enter();
+        using NativeFunctionAccessScope scope = cpuIdAsm.Enter();
         ((delegate* unmanaged[Cdecl]<Registers*, int, int, void>)scope.Address)(&registers, functionId, subFunctionId);
         return UnsafeHelper.As<Registers, (int Eax, int Ebx, int Ecx, int Edx)>(registers);
     }
@@ -373,10 +374,6 @@ unsafe partial class X86Base
         }
     }
 
-    private abstract partial class StoreAsArray : AssemblyCodeStoreBase { }
-
-    private abstract partial class StoreAsSpan : AssemblyCodeStoreBase { }
-
     [StructLayout(LayoutKind.Sequential, Pack = 4, Size = sizeof(int) * 4)]
     private readonly struct Registers
     {
@@ -385,6 +382,12 @@ unsafe partial class X86Base
         public override readonly string ToString()
             => $"{{EAX = {_eax}, EBX = {_ebx}, ECX = {_ecx}, EDX = {_edx}}}";
     }
+
+#if NETSTANDARD2_0
+    private static partial class StoreAsArray { }
+#endif
+
+    private static partial class StoreAsSpan { }
 }
 #endif
 #endif

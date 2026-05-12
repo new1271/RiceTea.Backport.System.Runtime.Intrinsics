@@ -17,12 +17,11 @@ partial class Bmi1
 {
     partial class X64
     {
-        private static readonly bool _isSupported;
-
-        static X64()
-        {
-            _isSupported = CheckIsSupported();
-        }
+        private static readonly bool _isSupported = CheckIsSupported();
+        private static readonly bool _isUnix = PlatformHelper.IsUnix;
+#if NETSTANDARD2_0
+        private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool CheckIsSupported()
@@ -95,9 +94,11 @@ partial class Bmi1
             }
         }
 
-        private abstract partial class StoreAsArray : AssemblyCodeStoreBase.X64 { }
+#if NETSTANDARD2_0
+        private static partial class StoreAsArray { }
+#endif
 
-        private abstract partial class StoreAsSpan : AssemblyCodeStoreBase.X64 { }
+        private static partial class StoreAsSpan { }
     }
 }
 #endif

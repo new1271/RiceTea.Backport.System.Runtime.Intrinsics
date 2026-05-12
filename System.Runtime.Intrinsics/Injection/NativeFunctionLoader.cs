@@ -24,13 +24,14 @@ public static unsafe partial class NativeFunctionLoader
     /// Load native function into memory.
     /// </summary>
     /// <param name="source">The source that native function stored.</param>
-    /// <param name="length">The length of <paramref name="source"/>.</param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static NativeFunctionHolder LoadIntoMemory(byte[] source, nuint length)
+    public static NativeFunctionHolder LoadIntoMemory(byte[] source)
     {
-        fixed (byte* ptr = source)
-            return LoadIntoMemory(ptr, length);
+        int length = source.Length;
+        if (length <= 0)
+            return default;
+        return LoadIntoMemoryUnsafe(source, (uint)length);
     }
 
     /// <summary>
@@ -40,7 +41,17 @@ public static unsafe partial class NativeFunctionLoader
     /// <param name="length">The length of <paramref name="source"/>.</param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static NativeFunctionHolder LoadIntoMemory(byte* source, nuint length)
+    public static NativeFunctionHolder LoadIntoMemoryUnsafe(byte[] source, uint length) 
+        => LoadIntoMemoryUnsafe(in UnsafeHelper.GetReference(source), length);
+
+    /// <summary>
+    /// Load native function into memory.
+    /// </summary>
+    /// <param name="source">The source that native function stored.</param>
+    /// <param name="length">The length of <paramref name="source"/>.</param>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NativeFunctionHolder LoadIntoMemoryUnsafe(ref readonly byte source, uint length)
     {
         byte* destination;
         EnterWriterLock();
@@ -48,7 +59,33 @@ public static unsafe partial class NativeFunctionLoader
         {
             destination = GetValidStartAddress(length);
             MemoryHelper.LetMemoryPageCanRW(destination, length);
-            UnsafeHelper.CopyBlock(destination, source, (uint)length); 
+            UnsafeHelper.CopyBlock(destination, in source, (uint)length);
+            MemoryHelper.LetMemoryPageCanRX(destination, length);
+            MemoryHelper.FlushInstructionCache(destination, length);
+        }
+        finally
+        {
+            LeaveWriterLock();
+        }
+        return new NativeFunctionHolder(destination);
+    }
+
+    /// <summary>
+    /// Load native function into memory.
+    /// </summary>
+    /// <param name="source">The source that native function stored.</param>
+    /// <param name="length">The length of <paramref name="source"/>.</param>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NativeFunctionHolder LoadIntoMemoryUnsafe(byte* source, uint length)
+    {
+        byte* destination;
+        EnterWriterLock();
+        try
+        {
+            destination = GetValidStartAddress(length);
+            MemoryHelper.LetMemoryPageCanRW(destination, length);
+            UnsafeHelper.CopyBlock(destination, source, length); 
             MemoryHelper.LetMemoryPageCanRX(destination, length);
             MemoryHelper.FlushInstructionCache(destination, length);
         }

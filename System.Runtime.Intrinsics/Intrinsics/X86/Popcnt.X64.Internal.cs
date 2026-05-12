@@ -15,25 +15,14 @@ using Fallbacks = RiceTea.Backport.Fallbacks.X86.Popcnt.X64;
 partial class Popcnt
 {
 	partial class X64
-	{
-		private static readonly object? _popcntLock;
-		private static readonly bool _isSupported;
+    {
+        private static readonly bool _isSupported = CheckIsSupported();
+        private static readonly bool _isUnix = PlatformHelper.IsUnix;
+#if NETSTANDARD2_0
+        private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
+#endif
 
-		static X64()
-		{
-			if (CheckIsSupported())
-			{
-				_popcntLock = new object();
-				_isSupported = true;
-			}
-			else
-			{
-				_popcntLock = null;
-				_isSupported = false;
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static bool CheckIsSupported()
 		{
 			if (!X86Base.X64.IsSupported)
@@ -104,9 +93,11 @@ partial class Popcnt
             }
         }
 
-		private abstract partial class StoreAsArray : AssemblyCodeStoreBase.X64 { }
+#if NETSTANDARD2_0
+        private static partial class StoreAsArray { }
+#endif
 
-		private abstract partial class StoreAsSpan : AssemblyCodeStoreBase.X64 { }
+        private static partial class StoreAsSpan { }
 	}
 }
 #endif

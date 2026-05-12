@@ -8,7 +8,9 @@ namespace RiceTea.Backport.Fallbacks;
 
 internal static partial class Fallbacks
 {
+#if NETSTANDARD2_0
     private static readonly bool _isSystemMemoryExists = SoftDependencyHelper.SystemMemoryExists;
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong TrailingZeroCount(ulong value)
@@ -28,10 +30,12 @@ internal static partial class Fallbacks
         // uint|long -> IntPtr cast on 32-bit platforms does expensive overflow checks not needed here
         nuint index = (nuint)(int)(((value & (uint)-(int)value) * 0x077CB531u) >> 27);
         // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
-        if (_isSystemMemoryExists)
-            return DeBruijn_StoreAsSpan.QueryTrailingZeroCountTable(index);
-        else
-            return DeBruijn_StoreAsArray.QueryTrailingZeroCountTable(index);
+
+#if NETSTANDARD2_0
+        if (!_isSystemMemoryExists)
+            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetTrailingZeroCountTableReference(), index);
+#endif
+        return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetTrailingZeroCountTableReference(), index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -47,7 +51,7 @@ internal static partial class Fallbacks
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint Log2(uint value)
-    {            
+    {
         // Fill trailing zeros with ones, eg 00010010 becomes 00011111
         value |= value >> 01;
         value |= value >> 02;
@@ -60,10 +64,11 @@ internal static partial class Fallbacks
         nuint index = (nuint)(int)((value * 0x07C4ACDDu) >> 27);
 
         // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
-        if (_isSystemMemoryExists)
-            return DeBruijn_StoreAsSpan.QueryLog2Table(index);
-        else
-            return DeBruijn_StoreAsArray.QueryLog2Table(index);
+#if NETSTANDARD2_0
+        if (!_isSystemMemoryExists)
+            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetLog2TableReference(), index);
+#endif
+        return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetLog2TableReference(), index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -163,7 +168,7 @@ internal static partial class Fallbacks
     {
         if (DivRem_FastCheck(lower, upper, divisor, out long quotient, out remainder))
             return quotient;
-        
+
         switch (upper)
         {
             case 0:
@@ -191,7 +196,7 @@ internal static partial class Fallbacks
     {
         if (DivRem_FastCheck(lower, upper, divisor, out ulong quotient, out remainder))
             return quotient;
-        
+
         if (upper == 0)
         {
             remainder = lower % divisor;
@@ -329,7 +334,7 @@ internal static partial class Fallbacks
             if (upper < 0)
             {
                 lower = 0 - lower;
-                upper = (~upper + (lower == 0 ? 1 : 0));
+                upper = ~upper + (lower == 0 ? 1 : 0);
 
                 outputNegative = true;
                 dividedNegative = true;

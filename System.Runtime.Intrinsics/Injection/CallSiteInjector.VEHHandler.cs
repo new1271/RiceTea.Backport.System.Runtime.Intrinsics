@@ -74,7 +74,7 @@ partial class CallSiteInjector
                     0x04, 0x80, 0x38, 0xF4, 0x74, 0xDA, 0xB8, 0xFF,
                     0xFF, 0xFF, 0xFF, 0xC2, 0x04, 0x00
                 };
-                return NativeFunctionLoader.LoadIntoMemory(data, Length);
+                return NativeFunctionLoader.LoadIntoMemoryUnsafe(data, Length);
 
             }
 #endif
@@ -99,7 +99,7 @@ partial class CallSiteInjector
                     0x38, 0xF4, 0x74, 0xD2, 0xB8, 0xFF, 0xFF, 0xFF,
                     0xFF, 0xC3
                 };
-                return NativeFunctionLoader.LoadIntoMemory(data, Length);
+                return NativeFunctionLoader.LoadIntoMemoryUnsafe(data, Length);
             }
 #endif
 #endif
@@ -150,7 +150,7 @@ partial class CallSiteInjector
                     0x04, 0x80, 0x38, 0xF4, 0x74, 0xDA, 0xB8, 0xFF,
                     0xFF, 0xFF, 0xFF, 0xC2, 0x04, 0x00
                 ];
-                return NativeFunctionLoader.LoadIntoMemory(data, Length);
+                return NativeFunctionLoader.LoadIntoMemoryUnsafe(data, Length);
 
             }
 #endif
@@ -175,7 +175,7 @@ partial class CallSiteInjector
                     0x38, 0xF4, 0x74, 0xD2, 0xB8, 0xFF, 0xFF, 0xFF,
                     0xFF, 0xC3
                 ];
-                return NativeFunctionLoader.LoadIntoMemory(data, Length);
+                return NativeFunctionLoader.LoadIntoMemoryUnsafe(data, Length);
             }
 #endif
 #endif

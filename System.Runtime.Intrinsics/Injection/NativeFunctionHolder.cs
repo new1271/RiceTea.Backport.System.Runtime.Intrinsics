@@ -5,11 +5,20 @@ using System.Runtime.InteropServices;
 namespace RiceTea.Backport.Injection
 {
     /// <summary>
-    /// A structure that holding the function address from <see cref="NativeFunctionLoader.LoadIntoMemory(byte*, nuint)"/>.
+    /// A structure that holding the function address from <see cref="NativeFunctionLoader.LoadIntoMemoryUnsafe(byte*, uint)"/>.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
-    public readonly unsafe struct NativeFunctionHolder
+    public readonly unsafe struct NativeFunctionHolder : IEquatable<NativeFunctionHolder>
     {
+        /// <summary>
+        /// Represents an empty or uninitialized instance of the <see cref="NativeFunctionHolder"/> structure.
+        /// </summary>
+        /// <remarks>
+        /// Use this field to indicate the absence of a native function or as a default value
+        /// when no valid <see cref="NativeFunctionHolder"/> is available.
+        /// </remarks>
+        public static readonly NativeFunctionHolder Empty = new NativeFunctionHolder(null);
+
         private readonly void* _address;
 
         internal NativeFunctionHolder(void* address)
@@ -22,6 +31,21 @@ namespace RiceTea.Backport.Injection
         /// </summary>
         /// <returns></returns>
         public readonly NativeFunctionAccessScope Enter() => new NativeFunctionAccessScope(_address);
+
+        /// <inheritdoc/>
+        public readonly bool Equals(NativeFunctionHolder other) => _address == other._address;
+
+        /// <inheritdoc/>
+        public override readonly bool Equals(object? obj) => obj is NativeFunctionHolder other && Equals(other);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => (int)_address;
+
+        /// <inheritdoc/>
+        public static bool operator ==(NativeFunctionHolder left, NativeFunctionHolder right) => left._address == right._address;
+
+        /// <inheritdoc/>
+        public static bool operator !=(NativeFunctionHolder left, NativeFunctionHolder right) => left._address != right._address;
     }
 
     /// <summary>

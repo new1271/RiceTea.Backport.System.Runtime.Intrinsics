@@ -14,37 +14,29 @@ using Fallbacks = RiceTea.Backport.Fallbacks.X86.Popcnt;
 
 partial class Popcnt
 {
-	private static readonly object? _popcntLock;
-	private static readonly bool _isSupported;
+    private static readonly bool _isSupported = CheckIsSupported();
+    private static readonly bool _isUnix = PlatformHelper.IsUnix && (PlatformHelper.IsX64 || PlatformHelper.IsMono);
+#if ANYCPU
+    private static readonly bool _isX64 = PlatformHelper.IsX64;
+#endif
+#if NETSTANDARD2_0
+    private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
+#endif
 
-	static Popcnt()
-	{
-		if (CheckIsSupported())
-		{
-			_popcntLock = new object();
-			_isSupported = true;
-		}
-		else
-		{
-			_popcntLock = null;
-			_isSupported = false;
-		}
-	}
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool CheckIsSupported()
+    {
+        if (!X86Base.IsSupported)
+            return false;
+        const int PopcntMask = 1 << 23;
+        return (CpuId(0x00000001, 0).Ecx & PopcntMask) == PopcntMask;
+    }
 
-	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static bool CheckIsSupported()
-	{
-		if (!X86Base.IsSupported)
-			return false;
-		const int PopcntMask = 1 << 23;
-		return (CpuId(0x00000001, 0).Ecx & PopcntMask) == PopcntMask;
-	}
-
-	public static new partial bool IsSupported
-	{
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get => _isSupported;
-	}
+    public static new partial bool IsSupported
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _isSupported;
+    }
 
 
     [DebuggerHidden]
@@ -103,9 +95,11 @@ partial class Popcnt
         }
     }
 
-    private abstract partial class StoreAsArray : AssemblyCodeStoreBase { }
+#if NETSTANDARD2_0
+    private static partial class StoreAsArray { }
+#endif
 
-	private abstract partial class StoreAsSpan : AssemblyCodeStoreBase { }
+    private static partial class StoreAsSpan { }
 }
 #endif
 #endif

@@ -22,8 +22,6 @@ internal static unsafe class UnsafeHelper
                 = PointerSizeConstant_Indeterminate;
 #endif
 
-    private static readonly bool _isMono = PlatformHelper.IsMono;
-
     public static int PointerSize
     {
         [Inline(InlineBehavior.Keep, export: true)]
@@ -94,7 +92,7 @@ internal static unsafe class UnsafeHelper
     }
 
     [Inline(InlineBehavior.Remove)]
-    public static void CopyBlock(void* destination, void* source, nuint byteCount)
+    public static void CopyBlock(void* destination, ref readonly byte source, uint byteCount)
     {
         IL.Emit.Ldarg_0();
         IL.Emit.Ldarg_1();
@@ -111,12 +109,16 @@ internal static unsafe class UnsafeHelper
         IL.Emit.Initblk();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ref T GetArrayDataReference<T>(T[] array)
-    {
 #if NET5_0_OR_GREATER
-        return ref MemoryMarshal.GetArrayDataReference(array);
+    [Inline(InlineBehavior.Remove)]
+    public static ref T GetReference<T>(T[] array)
+        => ref MemoryMarshal.GetArrayDataReference(array);
 #else
+    private static readonly bool _isMono = PlatformHelper.IsMono;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref T GetReference<T>(T[] array)
+    {
         if (!_isMono)
             return ref FastRoute(array);
 
@@ -125,10 +127,8 @@ internal static unsafe class UnsafeHelper
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static ref T FastRoute(T[] array) // 切割方法以誘導 JIT 內聯
             => ref AddByteOffset(ref As<byte, T>(ref As<RawData>(array).Data), PointerSize);
-#endif
     }
 
-#if !NET5_0_OR_GREATER
     [StructLayout(LayoutKind.Sequential)]
     private sealed class RawData
     {
@@ -141,7 +141,7 @@ internal static unsafe class UnsafeHelper
 
         private static nuint GetFirstElementOffsetOfArray()
         {
-            byte[] array = new byte[1] { default };
+            byte[] array = [default];
             return ByteOffsetUnsigned(ref As<RawData>(array).Data, ref array[0]);
         }
 

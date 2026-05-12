@@ -1,9 +1,7 @@
-
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_0
 #if (X86_ARCH && B64_ARCH) || ANYCPU
 
 using System.Diagnostics;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -16,116 +14,119 @@ namespace System.Runtime.Intrinsics.X86;
 
 partial class X86Base
 {
-	unsafe partial class X64
+    unsafe partial class X64
     {
-        private static readonly bool _isSupported;
+        private static readonly bool _isSupported = PlatformHelper.IsX64;
+        private static readonly bool _isUnix = PlatformHelper.IsUnix;
+#if NETSTANDARD2_0
+        private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
+#endif
 
-		static X64()
-		{
-            _isSupported = PlatformHelper.IsX64;
+        public static partial bool IsSupported
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _isSupported;
         }
 
-		public static partial bool IsSupported => _isSupported;
-
-		[DebuggerHidden]
-		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
         public static partial ulong BitScanForward(ulong value)
-		{
-			if (!_isSupported)
-				ThrowUtils.ThrowPlatformNotSupported();
+        {
+            if (!_isSupported)
+                ThrowUtils.ThrowPlatformNotSupported();
 
-			InjectStart(value);
-			return InjectEnd(Fallbacks.BitScanForward(value));
+            InjectStart(value);
+            return InjectEnd(Fallbacks.BitScanForward(value));
 
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			static void InjectStart(ulong value)
-			{
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static void InjectStart(ulong value)
+            {
                 void* address = CallSiteInjector.FindCallSite();
                 ThreadStatics.StartAddress = address;
                 CallSiteInjector.EnterAddressLock(address);
             }
 
             [MethodImpl(MethodImplOptions.NoInlining)]
-			static ulong InjectEnd(ulong value)
-			{
-				try
-				{
-					CallSiteInjector.Inject(
-						startAddress: ThreadStatics.StartAddress,
-						endAddress: CallSiteInjector.FindCallSite(),
-						injectorFunc: &InjectBsfAsm,
-						exitLockFunc: &ExitLock);
-					return value;
-				}
-				finally
-				{
-					ExitLock();
-				}
-			}
+            static ulong InjectEnd(ulong value)
+            {
+                try
+                {
+                    CallSiteInjector.Inject(
+                        startAddress: ThreadStatics.StartAddress,
+                        endAddress: CallSiteInjector.FindCallSite(),
+                        injectorFunc: &InjectBsfAsm,
+                        exitLockFunc: &ExitLock);
+                    return value;
+                }
+                finally
+                {
+                    ExitLock();
+                }
+            }
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void ExitLock()
-			{
-				try
-				{
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void ExitLock()
+            {
+                try
+                {
                     CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
                 }
                 catch (SynchronizationLockException)
-				{
-				}
-			}
-		}
+                {
+                }
+            }
+        }
 
-		[DebuggerHidden]
-		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
         public static partial ulong BitScanReverse(ulong value)
-		{
-			if (!_isSupported)
-				ThrowUtils.ThrowPlatformNotSupported();
+        {
+            if (!_isSupported)
+                ThrowUtils.ThrowPlatformNotSupported();
 
-			InjectStart(value);
-			return InjectEnd(Fallbacks.BitScanReverse(value));
+            InjectStart(value);
+            return InjectEnd(Fallbacks.BitScanReverse(value));
 
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			static void InjectStart(ulong value)
-			{
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static void InjectStart(ulong value)
+            {
                 void* address = CallSiteInjector.FindCallSite();
                 ThreadStatics.StartAddress = address;
                 CallSiteInjector.EnterAddressLock(address);
             }
 
             [MethodImpl(MethodImplOptions.NoInlining)]
-			static ulong InjectEnd(ulong value)
-			{
-				try
-				{
-					CallSiteInjector.Inject(
-						startAddress: ThreadStatics.StartAddress,
-						endAddress: CallSiteInjector.FindCallSite(),
-						injectorFunc: &InjectBsrAsm,
-						exitLockFunc: &ExitLock);
-					return value;
-				}
-				finally
-				{
-					ExitLock();
-				}
-			}
+            static ulong InjectEnd(ulong value)
+            {
+                try
+                {
+                    CallSiteInjector.Inject(
+                        startAddress: ThreadStatics.StartAddress,
+                        endAddress: CallSiteInjector.FindCallSite(),
+                        injectorFunc: &InjectBsrAsm,
+                        exitLockFunc: &ExitLock);
+                    return value;
+                }
+                finally
+                {
+                    ExitLock();
+                }
+            }
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			static void ExitLock()
-			{
-				try
-				{
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void ExitLock()
+            {
+                try
+                {
                     CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
                 }
                 catch (SynchronizationLockException)
-				{
-				}
-			}
-		}
+                {
+                }
+            }
+        }
 
         [DebuggerHidden]
         [DebuggerStepThrough]
@@ -238,27 +239,29 @@ partial class X86Base
         }
 
         [DebuggerHidden]
-		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static partial (long Quotient, long Remainder) DivRem(ulong lower, long upper, long divisor)
-		{
-			long quotient = DivRem(lower, upper, divisor, out long remainder);
-			return (quotient, remainder);
-		}
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static partial (long Quotient, long Remainder) DivRem(ulong lower, long upper, long divisor)
+        {
+            long quotient = DivRem(lower, upper, divisor, out long remainder);
+            return (quotient, remainder);
+        }
 
-		[DebuggerHidden]
-		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		public static partial (ulong Quotient, ulong Remainder) DivRem(ulong lower, ulong upper, ulong divisor)
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static partial (ulong Quotient, ulong Remainder) DivRem(ulong lower, ulong upper, ulong divisor)
         {
             ulong quotient = DivRem(lower, upper, divisor, out ulong remainder);
             return (quotient, remainder);
         }
 
-        private abstract partial class StoreAsArray : AssemblyCodeStoreBase.X64 { }
+#if NETSTANDARD2_0
+        private static partial class StoreAsArray { }
+#endif
 
-		private abstract partial class StoreAsSpan : AssemblyCodeStoreBase.X64 { }
-	}
+        private static partial class StoreAsSpan { }
+    }
 }
 #endif
 #endif

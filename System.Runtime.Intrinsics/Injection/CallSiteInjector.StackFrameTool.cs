@@ -170,7 +170,7 @@ unsafe partial class CallSiteInjector
                     IL.Emit.Calli(StandAloneMethodSig.ManagedMethod(CallingConventions.HasThis, typeof(void), [typeof(bool), typeof(Exception)]));
                 }
 
-                IntPtr[] rgHandles = ((IntPtr[])_rgMethodHandleField!.GetValue(stackFrameHelper)!);
+                IntPtr[] rgHandles = (IntPtr[])_rgMethodHandleField!.GetValue(stackFrameHelper)!;
                 int iNumOfFrames = rgHandles.Length;
 
                 IL.Emit.Ldtoken(new MethodRef(typeof(StackFrameTool), nameof(TryGetNativeFrame)));

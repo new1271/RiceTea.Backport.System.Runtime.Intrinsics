@@ -20,7 +20,7 @@ unsafe partial class CallSiteInjector
                  * nop
                  */
                 ulong restorerTrampoline = 0x90_80_CD_00_00_00_AD_B8;
-                using NativeFunctionAccessScope scope = NativeFunctionLoader.LoadIntoMemory((byte*)&restorerTrampoline, sizeof(ulong)).Enter();
+                using NativeFunctionAccessScope scope = NativeFunctionLoader.LoadIntoMemoryUnsafe((byte*)&restorerTrampoline, sizeof(ulong)).Enter();
                 restorerTrampolineAddress = scope.Address;
             }
             Native_Unix.SignalAction_LinuxX86 oldact;

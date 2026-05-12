@@ -1,6 +1,8 @@
 using System;
 using System.Runtime.CompilerServices;
 
+using RiceTea.Backport.Internals;
+
 namespace RiceTea.Backport.Injection;
 
 /// <summary>
@@ -10,12 +12,19 @@ public static class NativeFunctionLoaderExtensions
 {
     extension(NativeFunctionLoader)
     {
-        /// <inheritdoc cref="NativeFunctionLoader.LoadIntoMemory(byte*, nuint)"/>
+        /// <inheritdoc cref="NativeFunctionLoader.LoadIntoMemory(byte[])"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe NativeFunctionHolder LoadIntoMemory(in ReadOnlySpan<byte> source, nuint length)
+        public static NativeFunctionHolder LoadIntoMemory(scoped in ReadOnlySpan<byte> source)
         {
-            fixed (byte* ptr = source)
-                return NativeFunctionLoader.LoadIntoMemory(ptr, length);
+            int length = source.Length;
+            if (length <= 0)
+                return default;
+            return NativeFunctionLoader.LoadIntoMemoryUnsafe(in UnsafeHelper.GetReference(source), (uint)length);
         }
+
+        /// <inheritdoc cref="NativeFunctionLoader.LoadIntoMemoryUnsafe(byte[], uint)"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NativeFunctionHolder LoadIntoMemoryUnsafe(scoped in ReadOnlySpan<byte> source, uint length) 
+            => NativeFunctionLoader.LoadIntoMemoryUnsafe(in UnsafeHelper.GetReference(source), length);
     }
 }

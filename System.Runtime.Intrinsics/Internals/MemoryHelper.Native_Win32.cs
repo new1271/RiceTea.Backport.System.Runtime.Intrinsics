@@ -46,7 +46,7 @@ unsafe partial class MemoryHelper
             ResetUndo = 0x01000000,
             LargePages = 0x20000000,
             Alloc4MbPages = 0x80000000,
-            Alloc64KPages = (LargePages | Physical),
+            Alloc64KPages = LargePages | Physical,
             UnmapWithTransientBoost = 0x00000001,
             Coalesce_Placeholders = 0x00000001,
             PreservePlaceholder = 0x00000002,
@@ -84,9 +84,9 @@ unsafe partial class MemoryHelper
             TargetsInvalid = 0x40000000,
             EnclaveUnvalidated = 0x20000000,
             EnclaveMask = 0x10000000,
-            EnclaveDecommit = (EnclaveMask | 0),
-            EnclaveSSFirst = (EnclaveMask | 1),
-            EnclaveSSRest = (EnclaveMask | 2),
+            EnclaveDecommit = EnclaveMask | 0,
+            EnclaveSSFirst = EnclaveMask | 1,
+            EnclaveSSRest = EnclaveMask | 2,
         }
     }
 }

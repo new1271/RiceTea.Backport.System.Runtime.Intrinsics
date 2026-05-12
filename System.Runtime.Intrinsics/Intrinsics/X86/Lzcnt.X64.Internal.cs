@@ -15,25 +15,14 @@ namespace System.Runtime.Intrinsics.X86;
 partial class Lzcnt
 {
 	partial class X64
-	{
-		private static readonly object? _lzcntLock;
-		private static readonly bool _isSupported;
+    {
+        private static readonly bool _isSupported = CheckIsSupported();
+        private static readonly bool _isUnix = PlatformHelper.IsUnix;
+#if NETSTANDARD2_0
+        private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
+#endif
 
-		static X64()
-		{
-			if (CheckIsSupported())
-			{
-				_lzcntLock = new object();
-				_isSupported = true;
-			}
-			else
-			{
-				_lzcntLock = null;
-				_isSupported = false;
-			}
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static bool CheckIsSupported()
 		{
 			if (!X86Base.X64.IsSupported)
@@ -104,9 +93,11 @@ partial class Lzcnt
             }
         }
 
-		private abstract partial class StoreAsArray : AssemblyCodeStoreBase.X64 { }
+#if NETSTANDARD2_0
+		private static partial class StoreAsArray { }
+#endif
 
-		private abstract partial class StoreAsSpan : AssemblyCodeStoreBase.X64 { }
+        private static partial class StoreAsSpan { }
 	}
 }
 #endif

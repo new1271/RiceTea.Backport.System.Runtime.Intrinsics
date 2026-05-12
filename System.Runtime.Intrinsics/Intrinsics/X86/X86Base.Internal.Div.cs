@@ -9,11 +9,11 @@ namespace System.Runtime.Intrinsics.X86;
 
 unsafe partial class X86Base
 {
-#if (B32_ARCH || ANYCPU)
+#if B32_ARCH || ANYCPU
     private const int DivLength_Windows_X86 = 12;
     private const int DivLength_Unix_X86 = 18;
 #endif
-#if (B64_ARCH || ANYCPU)
+#if B64_ARCH || ANYCPU
     private const int DivLength_Windows_X64 = 8;
     private const int DivLength_Unix_X64 = 10;
 #endif
@@ -21,15 +21,114 @@ unsafe partial class X86Base
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InjectDivAsm(ref void* destination, ref uint length)
     {
-        if (SoftDependencyHelper.SystemMemoryExists)
-            StoreAsSpan.InjectDivAsm(ref destination, ref length);
+        if (_isUnix)
+        {
+#if B64_ARCH
+            InjectDivAsm_Unix_X64(ref destination, ref length);
+#elif B32_ARCH
+            InjectDivAsm_Unix_X86(ref destination, ref length);
+#else
+            if (_isX64)
+                InjectDivAsm_Unix_X64(ref destination, ref length);
+            else
+                InjectDivAsm_Unix_X86(ref destination, ref length);
+#endif
+        }
         else
-            StoreAsArray.InjectDivAsm(ref destination, ref length);
+        {
+#if B64_ARCH
+            InjectDivAsm_Windows_X64(ref destination, ref length);
+#elif B32_ARCH
+            InjectDivAsm_Windows_X86(ref destination, ref length);
+#else
+            if (_isX64)
+                InjectDivAsm_Windows_X64(ref destination, ref length);
+            else
+                InjectDivAsm_Windows_X86(ref destination, ref length);
+#endif
+        }
     }
 
+#if B32_ARCH || ANYCPU
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void InjectDivAsm_Windows_X86(ref void* destination, ref uint length)
+    {
+        const int Length = DivLength_Windows_X86;
+        if (length < Length)
+            throw new AccessViolationException();
+        destination = (byte*)destination + length - Length;
+        length = Length;
+#if NETSTANDARD2_0
+        if (!_spanExists)
+        {
+            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetDivDataReference_Windows_X86(), Length);
+            return;
+        }
+#endif
+        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetDivDataReference_Windows_X86(), Length);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void InjectDivAsm_Unix_X86(ref void* destination, ref uint length)
+    {
+        const int Length = DivLength_Unix_X86;
+        if (length < Length)
+            throw new AccessViolationException();
+        destination = (byte*)destination + length - Length;
+        length = Length;
+#if NETSTANDARD2_0
+        if (!_spanExists)
+        {
+            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetDivDataReference_Unix_X86(), Length);
+            return;
+        }
+#endif
+        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetDivDataReference_Unix_X86(), Length);
+    }
+#endif
+
+#if B64_ARCH || ANYCPU
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void InjectDivAsm_Windows_X64(ref void* destination, ref uint length)
+    {
+        const int Length = DivLength_Windows_X64;
+        if (length < Length)
+            throw new AccessViolationException();
+        destination = (byte*)destination + length - Length;
+        length = Length;
+#if NETSTANDARD2_0
+        if (!_spanExists)
+        {
+            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetDivDataReference_Windows_X64(), Length);
+            return;
+        }
+#endif
+        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetDivDataReference_Windows_X64(), Length);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void InjectDivAsm_Unix_X64(ref void* destination, ref uint length)
+    {
+        const int Length = DivLength_Unix_X64;
+        if (length < Length)
+            throw new AccessViolationException();
+        destination = (byte*)destination + length - Length;
+        length = Length;
+#if NETSTANDARD2_0
+        if (!_spanExists)
+        {
+            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetDivDataReference_Unix_X64(), Length);
+            return;
+        }
+#endif
+        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetDivDataReference_Unix_X64(), Length);
+    }
+#endif
+
+#if NETSTANDARD2_0
     partial class StoreAsArray
     {
-#if (B32_ARCH || ANYCPU)
+#if B32_ARCH || ANYCPU
         private static readonly byte[] DivData_Windows_X86 = new byte[DivLength_Windows_X86]
         {
             0x89, 0xC8, // mov eax, ecx
@@ -46,7 +145,7 @@ unsafe partial class X86Base
             0x89, 0x11 // mov [ecx], edx
         };
 #endif
-#if (B64_ARCH || ANYCPU)
+#if B64_ARCH || ANYCPU
         private static readonly byte[] DivData_Windows_X64 = new byte[DivLength_Windows_X64]
         {
             0x89, 0xC8, // mov eax, ecx
@@ -63,207 +162,82 @@ unsafe partial class X86Base
         };
 #endif
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void InjectDivAsm(ref void* destination, ref uint length)
-        {
-            if (IsUnix)
-            {
-#if B64_ARCH
-                InjectDivAsm_Unix_X64(ref destination, ref length);
-#elif B32_ARCH
-                InjectDivAsm_Unix_X86(ref destination, ref length);
-#else
-                if (IsX64)
-                    InjectDivAsm_Unix_X64(ref destination, ref length);
-                else
-                    InjectDivAsm_Unix_X86(ref destination, ref length);
-#endif
-            }
-            else
-            {
-#if B64_ARCH
-                InjectDivAsm_Windows_X64(ref destination, ref length);
-#elif B32_ARCH
-                InjectDivAsm_Windows_X86(ref destination, ref length);
-#else
-                if (IsX64)
-                    InjectDivAsm_Windows_X64(ref destination, ref length);
-                else
-                    InjectDivAsm_Windows_X86(ref destination, ref length);
-#endif
-            }
-        }
-
 #if B32_ARCH || ANYCPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDivAsm_Windows_X86(ref void* destination, ref uint length)
-        {
-            const int Length = DivLength_Windows_X86;
-            if (length < Length)
-                throw new AccessViolationException();
-            destination = (byte*)destination + length - Length;
-            fixed (byte* source = DivData_Windows_X86)
-                UnsafeHelper.CopyBlock(destination, source, Length);
-            length = Length;
-        }
+        public static ref readonly byte GetDivDataReference_Windows_X86()
+            => ref UnsafeHelper.GetReference(DivData_Windows_X86);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDivAsm_Unix_X86(ref void* destination, ref uint length)
-        {
-            const int Length = DivLength_Unix_X86;
-            if (length < Length)
-                throw new AccessViolationException();
-            destination = (byte*)destination + length - Length;
-            fixed (byte* source = DivData_Unix_X86)
-                UnsafeHelper.CopyBlock(destination, source, Length);
-            length = Length;
-        }
+        public static ref readonly byte GetDivDataReference_Unix_X86()
+            => ref UnsafeHelper.GetReference(DivData_Unix_X86);
 #endif
 
 #if B64_ARCH || ANYCPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDivAsm_Windows_X64(ref void* destination, ref uint length)
-        {
-            const int Length = DivLength_Windows_X64;
-            if (length < Length)
-                throw new AccessViolationException();
-            destination = (byte*)destination + length - Length;
-            fixed (byte* source = DivData_Windows_X64)
-                UnsafeHelper.CopyBlock(destination, source, Length);
-            length = Length;
-        }
+        public static ref readonly byte GetDivDataReference_Windows_X64()
+            => ref UnsafeHelper.GetReference(DivData_Windows_X64);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDivAsm_Unix_X64(ref void* destination, ref uint length)
-        {
-            const int Length = DivLength_Unix_X64;
-            if (length < Length)
-                throw new AccessViolationException();
-            destination = (byte*)destination + length - Length;
-            fixed (byte* source = DivData_Unix_X64)
-                UnsafeHelper.CopyBlock(destination, source, Length);
-            length = Length;
-        }
+        public static ref readonly byte GetDivDataReference_Unix_X64()
+            => ref UnsafeHelper.GetReference(DivData_Unix_X64);
 #endif
     }
+#endif
 
     partial class StoreAsSpan
     {
-#if (B32_ARCH || ANYCPU)
-        private static ReadOnlySpan<byte> DivData_Windows_X86 =>
-        [
+#if B32_ARCH || ANYCPU
+        private static ReadOnlySpan<byte> DivData_Windows_X86 => new byte[DivLength_Windows_X86]
+        {
             0x89, 0xC8, // mov eax, ecx
             0x8B, 0x4C, 0x24, 0x04, // mov ecx, dword ptr [esp+4]
             0xF7, 0x74, 0x24, 0x08, // div dword ptr [esp+8]
             0x89, 0x11 // mov dword ptr [ecx], edx
-        ];
-        private static ReadOnlySpan<byte> DivData_Unix_X86 =>
-        [
+        };
+        private static ReadOnlySpan<byte> DivData_Unix_X86 => new byte[DivLength_Unix_X86]
+        {
             0x8B, 0x44, 0x24, 0x04, // mov eax, dword ptr [esp+4]
             0x8B, 0x54, 0x24, 0x08, // mov edx, dword ptr [esp+8]
             0x8B, 0x4C, 0x24, 0x10, // mov ecx, dword ptr [esp+16]
             0xF7, 0x74, 0x24, 0x0C, // div dword ptr [esp+12]
             0x89, 0x11 // mov [ecx], edx
-        ];
+        };
 #endif
-#if (B64_ARCH || ANYCPU)
-        private static ReadOnlySpan<byte> DivData_Windows_X64 =>
-        [
+#if B64_ARCH || ANYCPU
+        private static ReadOnlySpan<byte> DivData_Windows_X64 => new byte[DivLength_Windows_X64]
+        {
             0x89, 0xC8, // mov eax, ecx
             0x41, 0xF7, 0xF0, // div r8d
             0x41, 0x89, 0x11 // mov dword ptr [r9], edx
-        ];
-        private static ReadOnlySpan<byte> DivData_Unix_X64 =>
-        [
+        };
+        private static ReadOnlySpan<byte> DivData_Unix_X64 => new byte[DivLength_Unix_X64]
+        {
             0x89, 0xF8, // mov eax, edi
             0x89, 0xD7, // mov edi, edx
             0x89, 0xF2, // mov edx, esi
             0xF7, 0xF7, // div edi
             0x89, 0x11 // mov dword ptr [rcx], edx
-        ];
+        };
 #endif
-
-[MethodImpl(MethodImplOptions.NoInlining)]
-        public static void InjectDivAsm(ref void* destination, ref uint length)
-        {
-            if (IsUnix)
-            {
-#if B64_ARCH
-                InjectDivAsm_Unix_X64(ref destination, ref length);
-#elif B32_ARCH
-                InjectDivAsm_Unix_X86(ref destination, ref length);
-#else
-                if (IsX64)
-                    InjectDivAsm_Unix_X64(ref destination, ref length);
-                else
-                    InjectDivAsm_Unix_X86(ref destination, ref length);
-#endif
-            }
-            else
-            {
-#if B64_ARCH
-                InjectDivAsm_Windows_X64(ref destination, ref length);
-#elif B32_ARCH
-                InjectDivAsm_Windows_X86(ref destination, ref length);
-#else
-                if (IsX64)
-                    InjectDivAsm_Windows_X64(ref destination, ref length);
-                else
-                    InjectDivAsm_Windows_X86(ref destination, ref length);
-#endif
-            }
-        }
 
 #if B32_ARCH || ANYCPU
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDivAsm_Windows_X86(ref void* destination, ref uint length)
-        {
-            const int Length = DivLength_Windows_X86;
-            if (length < Length)
-                throw new AccessViolationException();
-            destination = (byte*)destination + length - Length;
-            fixed (byte* source = DivData_Windows_X86)
-                UnsafeHelper.CopyBlock(destination, source, Length);
-            length = Length;
-        }
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetDivDataReference_Windows_X86()
+            => ref UnsafeHelper.GetReference(DivData_Windows_X86);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDivAsm_Unix_X86(ref void* destination, ref uint length)
-        {
-            const int Length = DivLength_Unix_X86;
-            if (length < Length)
-                throw new AccessViolationException();
-            destination = (byte*)destination + length - Length;
-            fixed (byte* source = DivData_Unix_X86)
-                UnsafeHelper.CopyBlock(destination, source, Length);
-            length = Length;
-        }
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetDivDataReference_Unix_X86()
+            => ref UnsafeHelper.GetReference(DivData_Unix_X86);
 #endif
 
 #if B64_ARCH || ANYCPU
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDivAsm_Windows_X64(ref void* destination, ref uint length)
-        {
-            const int Length = DivLength_Windows_X64;
-            if (length < Length)
-                throw new AccessViolationException();
-            destination = (byte*)destination + length - Length;
-            fixed (byte* source = DivData_Windows_X64)
-                UnsafeHelper.CopyBlock(destination, source, Length);
-            length = Length;
-        }
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetDivDataReference_Windows_X64()
+            => ref UnsafeHelper.GetReference(DivData_Windows_X64);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void InjectDivAsm_Unix_X64(ref void* destination, ref uint length)
-        {
-            const int Length = DivLength_Unix_X64;
-            if (length < Length)
-                throw new AccessViolationException();
-            destination = (byte*)destination + length - Length;
-            fixed (byte* source = DivData_Unix_X64)
-                UnsafeHelper.CopyBlock(destination, source, Length);
-            length = Length;
-        }
+        [MethodImpl(Constants.SpanSourceInliningOptions)]
+        public static ref readonly byte GetDivDataReference_Unix_X64()
+            => ref UnsafeHelper.GetReference(DivData_Unix_X64);
 #endif
     }
 }

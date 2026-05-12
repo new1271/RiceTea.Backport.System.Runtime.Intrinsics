@@ -87,7 +87,7 @@ partial class CallSiteInjector
                     0xC4, 0x14, 0xEB, 0x03, 0x83, 0xC4, 0x04, 0x5E,
                     0x5B, 0xC3
                 };
-                return (Holder: NativeFunctionLoader.LoadIntoMemory(data, Length), SlotOffset: 83);
+                return (Holder: NativeFunctionLoader.LoadIntoMemoryUnsafe(data, Length), SlotOffset: 83);
             }
 #endif
 
@@ -115,7 +115,7 @@ partial class CallSiteInjector
                     0x48, 0x8B, 0x00, 0x48, 0x85, 0xC0, 0x74, 0x02,
                     0xFF, 0xE0, 0xC3
                 };
-                return (Holder: NativeFunctionLoader.LoadIntoMemory(data, Length), SlotOffset: 72);
+                return (Holder: NativeFunctionLoader.LoadIntoMemoryUnsafe(data, Length), SlotOffset: 72);
             }
 #endif
 #endif
@@ -175,7 +175,7 @@ partial class CallSiteInjector
                     0xC4, 0x14, 0xEB, 0x03, 0x83, 0xC4, 0x04, 0x5E,
                     0x5B, 0xC3
                 ];
-                return (Holder: NativeFunctionLoader.LoadIntoMemory(data, Length), SlotOffset: 83);
+                return (Holder: NativeFunctionLoader.LoadIntoMemoryUnsafe(data, Length), SlotOffset: 83);
             }
 #endif
 
@@ -203,7 +203,7 @@ partial class CallSiteInjector
                     0x48, 0x8B, 0x00, 0x48, 0x85, 0xC0, 0x74, 0x02,
                     0xFF, 0xE0, 0xC3
                 ];
-                return (Holder: NativeFunctionLoader.LoadIntoMemory(data, Length), SlotOffset: 72);
+                return (Holder: NativeFunctionLoader.LoadIntoMemoryUnsafe(data, Length), SlotOffset: 72);
             }
 #endif
 #endif

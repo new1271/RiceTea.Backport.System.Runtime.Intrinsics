@@ -14,12 +14,14 @@ namespace System.Runtime.Intrinsics.X86;
 
 partial class Bmi1
 {
-    private static readonly bool _isSupported;
-
-    static Bmi1()
-    {
-        _isSupported = CheckIsSupported();
-    }
+    private static readonly bool _isSupported = CheckIsSupported();
+    private static readonly bool _isUnix = PlatformHelper.IsUnix && (PlatformHelper.IsX64 || PlatformHelper.IsMono);
+#if ANYCPU
+    private static readonly bool _isX64 = PlatformHelper.IsX64;
+#endif
+#if NETSTANDARD2_0
+    private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CheckIsSupported()
@@ -92,9 +94,11 @@ partial class Bmi1
         }
     }
 
-    private abstract partial class StoreAsArray : AssemblyCodeStoreBase { }
+#if NETSTANDARD2_0
+    private static partial class StoreAsArray { }
+#endif
 
-    private abstract partial class StoreAsSpan : AssemblyCodeStoreBase { }
+    private static partial class StoreAsSpan { }
 }
 #endif
 #endif
