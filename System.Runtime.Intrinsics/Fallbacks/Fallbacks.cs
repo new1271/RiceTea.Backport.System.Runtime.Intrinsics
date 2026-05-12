@@ -8,6 +8,9 @@ namespace RiceTea.Backport.Fallbacks;
 
 internal static partial class Fallbacks
 {
+#if ANYCPU
+    private static readonly bool _isX64 = PlatformHelper.IsX64;
+#endif
 #if NETSTANDARD2_0
     private static readonly bool _isSystemMemoryExists = SoftDependencyHelper.SystemMemoryExists;
 #endif
@@ -15,12 +18,43 @@ internal static partial class Fallbacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong TrailingZeroCount(ulong value)
     {
-        uint lo = (uint)value;
+#if B64_ARCH
+        return Core64(value);
+#elif ANYCPU
+        if (_isX64)
+            return Core64(value);
+        else
+            return CoreDefault(value);
+#else
+        return CoreDefault(value);
+#endif
 
-        if (lo == 0)
-            return 32 + TrailingZeroCount((uint)(value >> 32));
+#if B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong Core64(ulong value)
+        {
+            nuint index = (nuint)(long)(((value & (ulong)-(long)value) * 0x03F79D591089AB11UL) >> 58);
 
-        return TrailingZeroCount(lo);
+#if NETSTANDARD2_0
+            if (!_isSystemMemoryExists)
+                return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetTrailingZeroCountTableReference_64(), index);
+#endif
+            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetTrailingZeroCountTableReference_64(), index);
+        }
+#endif
+
+#if !B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong CoreDefault(ulong value)
+        {
+            uint lo = (uint)value;
+
+            if (lo == 0)
+                return 32 + TrailingZeroCount((uint)(value >> 32));
+
+            return TrailingZeroCount(lo);
+        }
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -33,20 +67,59 @@ internal static partial class Fallbacks
 
 #if NETSTANDARD2_0
         if (!_isSystemMemoryExists)
-            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetTrailingZeroCountTableReference(), index);
+            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetTrailingZeroCountTableReference_32(), index);
 #endif
-        return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetTrailingZeroCountTableReference(), index);
+        return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetTrailingZeroCountTableReference_32(), index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong Log2(ulong value)
     {
-        uint hi = (uint)(value >> 32);
+#if B64_ARCH
+        return Core64(value);
+#elif ANYCPU
+        if (_isX64)
+            return Core64(value);
+        else
+            return CoreDefault(value);
+#else
+        return CoreDefault(value);
+#endif
 
-        if (hi == 0)
-            return Log2((uint)value);
+#if B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong Core64(ulong value)
+        {
+            // Fill trailing zeros with ones, eg 00010010 becomes 00011111
+            value |= value >> 01;
+            value |= value >> 02;
+            value |= value >> 04;
+            value |= value >> 08;
+            value |= value >> 16;
+            value |= value >> 32;
 
-        return 32 + Log2(hi);
+            nuint index = (nuint)(long)((value * 0x07C4ACDD243104D7UL) >> 58);
+
+#if NETSTANDARD2_0
+            if (!_isSystemMemoryExists)
+                return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetTrailingZeroCountTableReference_64(), index);
+#endif
+            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetTrailingZeroCountTableReference_64(), index);
+        }
+#endif
+
+#if !B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong CoreDefault(ulong value)
+        {
+            uint hi = (uint)(value >> 32);
+
+            if (hi == 0)
+                return Log2((uint)value);
+
+            return 32 + Log2(hi);
+        }
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -66,9 +139,9 @@ internal static partial class Fallbacks
         // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
 #if NETSTANDARD2_0
         if (!_isSystemMemoryExists)
-            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetLog2TableReference(), index);
+            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetLog2TableReference_32(), index);
 #endif
-        return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetLog2TableReference(), index);
+        return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetLog2TableReference_32(), index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -104,16 +177,42 @@ internal static partial class Fallbacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong PopCount(ulong value)
     {
-        const ulong c1 = 0x_55555555_55555555ul;
-        const ulong c2 = 0x_33333333_33333333ul;
-        const ulong c3 = 0x_0F0F0F0F_0F0F0F0Ful;
-        const ulong c4 = 0x_01010101_01010101ul;
+#if B64_ARCH
+        return Core64(value);
+#elif ANYCPU
+        if (_isX64)
+            return Core64(value);
+        else
+            return CoreDefault(value);
+#else
+        return CoreDefault(value);
+#endif
 
-        value -= (value >> 1) & c1;
-        value = (value & c2) + ((value >> 2) & c2);
-        value = (((value + (value >> 4)) & c3) * c4) >> 56;
+#if B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong Core64(ulong value)
+        {
+            const ulong c1 = 0x_55555555_55555555ul;
+            const ulong c2 = 0x_33333333_33333333ul;
+            const ulong c3 = 0x_0F0F0F0F_0F0F0F0Ful;
+            const ulong c4 = 0x_01010101_01010101ul;
 
-        return (uint)value;
+            value -= (value >> 1) & c1;
+            value = (value & c2) + ((value >> 2) & c2);
+            value = (((value + (value >> 4)) & c3) * c4) >> 56;
+
+            return value;
+        }
+#endif
+
+#if !B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong CoreDefault(ulong value)
+        {
+            return PopCount((uint)value) // lo
+                  + PopCount((uint)(value >> 32)); // hi
+        }
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
