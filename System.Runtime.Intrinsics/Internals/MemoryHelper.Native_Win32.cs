@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace RiceTea.Backport.Injection;
+namespace RiceTea.Backport.Internals;
 
 unsafe partial class MemoryHelper
 {
@@ -16,6 +16,9 @@ unsafe partial class MemoryHelper
 
         [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(VirtualAlloc))]
         public static extern void* VirtualAlloc(void* address, nuint dwSize, MemoryAllocationTypes allocationTypes, PageAccessRights rights);
+
+        [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(VirtualFree))]
+        public static extern int VirtualFree(void* address, nuint dwSize, uint dwFreeType);
 
         [DllImport("kernel32", CallingConvention = CallingConvention.StdCall, EntryPoint = nameof(VirtualProtect))]
         public static extern int VirtualProtect(void* address, nuint dwSize, PageAccessRights rights, PageAccessRights* oldRights);

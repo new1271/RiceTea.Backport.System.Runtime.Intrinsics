@@ -110,7 +110,7 @@ public static unsafe partial class NativeFunctionLoader
         nuint pageSize = _pageSize;
         if (requestedSize > pageSize)
             pageSize = CeilDiv(requestedSize, pageSize) * pageSize;
-        result = (byte*)MemoryHelper.AllocNewPage(pageSize);
+        result = (byte*)MemoryHelper.AllocMemoryPage(pageSize);
         _pageStartAddress = result;
         _pageNextAddress = result + CeilDiv(requestedSize, AddressAlignment) * AddressAlignment;
         _pageEndAddress = result + pageSize;

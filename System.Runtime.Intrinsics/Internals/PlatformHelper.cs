@@ -1,11 +1,12 @@
 using System;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 
 namespace RiceTea.Backport.Internals;
 
 internal static class PlatformHelper
 {
-    public static readonly bool IsX86, IsX64, IsMono, IsUnix, IsWindows, IsLinux, IsMacOSX, IsFreeBSD;
+    public static readonly bool IsX86, IsX64, IsMono, IsUnix, IsWindows, IsLinux, IsMacOSX, IsFreeBSD, IsRWXSupported;
 
     static PlatformHelper()
     {
@@ -64,6 +65,26 @@ internal static class PlatformHelper
             IsLinux = false;
             IsMacOSX = false;
             IsFreeBSD = false;
+        }
+        IsRWXSupported = CheckIsRWXSupported();
+    }
+
+    [HandleProcessCorruptedStateExceptions]
+    private static unsafe bool CheckIsRWXSupported()
+    {
+        nuint pageSize = (nuint)Environment.SystemPageSize;
+        void* page = MemoryHelper.AllocMemoryPage(pageSize);
+        try
+        {
+            return MemoryHelper.LetMemoryPageCanRWX(page, pageSize);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+        finally
+        {
+            MemoryHelper.FreeMemoryPage(page, pageSize);
         }
     }
 }

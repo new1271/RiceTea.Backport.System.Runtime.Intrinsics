@@ -30,6 +30,7 @@ public static unsafe partial class CallSiteInjector
     /// </summary>
     public const int JumpShortInstructionSize = 2;
 
+    // for JIT dead code elimination (runtime constants)
     private static readonly bool _isX86 = PlatformHelper.IsX86;
     private static readonly bool _isX64 = PlatformHelper.IsX64;
     private static readonly bool _isMono = PlatformHelper.IsMono;
@@ -38,6 +39,9 @@ public static unsafe partial class CallSiteInjector
     private static readonly bool _isLinux = PlatformHelper.IsLinux;
     private static readonly bool _isMacOSX = PlatformHelper.IsMacOSX;
     private static readonly bool _isFreeBSD = PlatformHelper.IsFreeBSD;
+    private static readonly bool _isRWXSupported = PlatformHelper.IsRWXSupported;
+
+    // real static fields
     private static readonly ConcurrentDictionary<nuint, StrongBox<nuint>> _addressLockDict = new();
     private static IntPtr _lastPriorityInstructionHandler;
 
@@ -58,11 +62,12 @@ public static unsafe partial class CallSiteInjector
         if (!_isX86 || (!_isWindows && !_isUnix))
             ThrowUtils.ThrowPlatformNotSupported();
 
-        if (startAddress is null || startAddress >= endAddress)
+        if (!_isRWXSupported || startAddress is null || startAddress >= endAddress)
             return;
 
         uint length = (uint)((byte*)endAddress - (byte*)startAddress);
-        MemoryHelper.LetMemoryPageCanRWX(startAddress, length); // We should ignore W^X rule here because hot-patching
+        if (!MemoryHelper.LetMemoryPageCanRWX(startAddress, length)) // We should ignore W^X rule here because hot-patching
+            return;
 
         WriteCallInstruction(startAddress, exitLockFunc);
 
@@ -102,7 +107,7 @@ public static unsafe partial class CallSiteInjector
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void* FindCallSite()
     {
-        if (_isMono)
+        if (!_isX86 || _isMono || !_isRWXSupported)
             goto Failed;
 
         if (!StackFrameTool.IsSupported || !StackFrameTool.TryGetNativeFrame(skipFrames: 2, out RuntimeMethodHandle handle, out int offset))
@@ -116,7 +121,7 @@ public static unsafe partial class CallSiteInjector
             MethodBase? method = frame.GetMethod();
             if (method is null)
                 goto Failed;
-            handle = method.MethodHandle; 
+            handle = method.MethodHandle;
             offset = frame.GetNativeOffset();
         }
         void* callSiteMethodStartAddress = FindRealEntryPoint(handle); // the caller of caller for FindCallSite
@@ -163,14 +168,6 @@ public static unsafe partial class CallSiteInjector
             ((ICollection<KeyValuePair<nuint, StrongBox<nuint>>>)_addressLockDict).Remove(pair);
 #endif
         }
-    }
-
-    private static void* FindRealEntryPoint(StackFrame frame)
-    {
-        MethodBase? method = frame.GetMethod();
-        if (method is null)
-            return null;
-        return FindRealEntryPoint(method.MethodHandle);
     }
 
     private static void* FindRealEntryPoint(RuntimeMethodHandle handle)

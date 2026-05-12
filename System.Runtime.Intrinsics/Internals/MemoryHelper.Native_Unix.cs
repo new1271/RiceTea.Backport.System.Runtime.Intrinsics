@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 
-namespace RiceTea.Backport.Injection;
+namespace RiceTea.Backport.Internals;
 
 unsafe partial class MemoryHelper
 {
@@ -15,6 +15,9 @@ unsafe partial class MemoryHelper
 
         [DllImport("c", CallingConvention = CallingConvention.Cdecl, EntryPoint = nameof(mmap))]
         public static extern void* mmap(void* ptr, nuint length, ProtectMemoryPageFlags prot, MemoryMapFlags flags, int fd, nint offset);
+
+        [DllImport("c", CallingConvention = CallingConvention.Cdecl, EntryPoint = nameof(munmap))]
+        public static extern int munmap(void* ptr, nuint length);
 
         [DllImport("c", CallingConvention = CallingConvention.Cdecl, EntryPoint = nameof(mprotect))]
         public static extern int mprotect(void* ptr, nuint length, ProtectMemoryPageFlags flags);
