@@ -10,6 +10,14 @@ namespace System.Runtime.Intrinsics.X86;
 
 unsafe partial class X86Base
 {
+    private const int BsrLength_Windows = 3;
+#if (B32_ARCH || ANYCPU)
+    private const int BsrLength_Unix_X86 = 5;
+#endif
+#if (B64_ARCH || ANYCPU)
+    private const int BsrLength_Unix_X64 = 3;
+#endif
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InjectBsrAsm(ref void* destination, ref uint length)
     {
@@ -21,6 +29,23 @@ unsafe partial class X86Base
 
     partial class StoreAsArray
     {
+        private static readonly byte[] BsrData_Windows = new byte[BsrLength_Windows]
+        {
+            0x0F, 0xBD, 0xC1 // bsr eax, ecx
+        };
+#if (B32_ARCH || ANYCPU)
+        private static readonly byte[] BsrData_Unix_X86 = new byte[BsrLength_Unix_X86]
+        {
+            0x0F, 0xBD, 0x44, 0x24, 0x04 // bsr eax, dword ptr [esp+4]
+        };
+#endif
+#if (B64_ARCH || ANYCPU)
+        private static readonly byte[] BsrData_Unix_X64 = new byte[BsrLength_Unix_X64]
+        {
+            0x0F, 0xBD, 0xC7 // bsr eax, edi
+        };
+#endif
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void InjectBsrAsm(ref void* destination, ref uint length)
         {
@@ -44,14 +69,11 @@ unsafe partial class X86Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectBsrAsm_Windows(ref void* destination, ref uint length)
         {
-            const int Length = 3;
-            byte[] data = new byte[Length] {
-                0x0F, 0xBD, 0xC1 // bsr eax, ecx
-            };
+            const int Length = BsrLength_Windows;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = BsrData_Windows)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
@@ -60,14 +82,11 @@ unsafe partial class X86Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectBsrAsm_Unix_X86(ref void* destination, ref uint length)
         {
-            const int Length = 5;
-            byte[] data = new byte[Length] {
-                0x0F, 0xBD, 0x44, 0x24, 0x04 // bsr eax, dword ptr [esp+4]
-            };
+            const int Length = BsrLength_Unix_X86;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = BsrData_Unix_X86)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
@@ -77,14 +96,11 @@ unsafe partial class X86Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectBsrAsm_Unix_X64(ref void* destination, ref uint length)
         {
-            const int Length = 3;
-            byte[] data = new byte[Length] {
-                0x0F, 0xBD, 0xC7 // bsr eax, edi
-            };
+            const int Length = BsrLength_Unix_X64;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = BsrData_Unix_X64)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
@@ -93,6 +109,23 @@ unsafe partial class X86Base
 
     partial class StoreAsSpan
     {
+        private static ReadOnlySpan<byte> BsrData_Windows =>
+        [
+            0x0F, 0xBD, 0xC1 // bsr eax, ecx
+        ];
+#if (B32_ARCH || ANYCPU)
+        private static ReadOnlySpan<byte> BsrData_Unix_X86 =>
+        [
+            0x0F, 0xBD, 0x44, 0x24, 0x04 // bsr eax, dword ptr [esp+4]
+        ];
+#endif
+#if (B64_ARCH || ANYCPU)
+        private static ReadOnlySpan<byte> BsrData_Unix_X64 =>
+        [
+            0x0F, 0xBD, 0xC7 // bsr eax, edi
+        ];
+#endif
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void InjectBsrAsm(ref void* destination, ref uint length)
         {
@@ -116,14 +149,11 @@ unsafe partial class X86Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectBsrAsm_Windows(ref void* destination, ref uint length)
         {
-            const int Length = 3;
-            ReadOnlySpan<byte> data = [
-                0x0F, 0xBD, 0xC1 // bsr eax, ecx
-            ];
+            const int Length = BsrLength_Windows;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = BsrData_Windows)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
@@ -132,14 +162,11 @@ unsafe partial class X86Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectBsrAsm_Unix_X86(ref void* destination, ref uint length)
         {
-            const int Length = 5;
-            ReadOnlySpan<byte> data = [
-                0x0F, 0xBD, 0x44, 0x24, 0x04 // bsr eax, dword ptr [esp+4]
-            ];
+            const int Length = BsrLength_Unix_X86;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = BsrData_Unix_X86)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
@@ -149,14 +176,11 @@ unsafe partial class X86Base
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectBsrAsm_Unix_X64(ref void* destination, ref uint length)
         {
-            const int Length = 3;
-            ReadOnlySpan<byte> data = [
-                0x0F, 0xBD, 0xC7 // bsr eax, edi
-            ];
+            const int Length = BsrLength_Unix_X64;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = BsrData_Unix_X64)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }

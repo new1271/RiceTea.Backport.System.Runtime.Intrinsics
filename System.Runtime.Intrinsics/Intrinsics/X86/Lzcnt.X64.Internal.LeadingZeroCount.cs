@@ -10,105 +10,114 @@ namespace System.Runtime.Intrinsics.X86;
 
 partial class Lzcnt
 {
-	unsafe partial class X64
-	{
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static void InjectLzcntAsm(ref void* destination, ref uint length)
-		{
+    unsafe partial class X64
+    {
+        private const int LzcntLength_Windows = 5;
+        private const int LzcntLength_Unix = 5;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectLzcntAsm(ref void* destination, ref uint length)
+        {
 #if ANYCPU
             if (!PlatformHelper.IsX64)
                 throw new PlatformNotSupportedException();
 #endif
-			if (SoftDependencyHelper.SystemMemoryExists)
-				StoreAsSpan.InjectLzcntAsm(ref destination, ref length);
-			else
-				StoreAsArray.InjectLzcntAsm(ref destination, ref length);
-		}
+            if (SoftDependencyHelper.SystemMemoryExists)
+                StoreAsSpan.InjectLzcntAsm(ref destination, ref length);
+            else
+                StoreAsArray.InjectLzcntAsm(ref destination, ref length);
+        }
 
-		partial class StoreAsArray
-		{
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			public static void InjectLzcntAsm(ref void* destination, ref uint length)
-			{
-				if (IsUnix)
-					InjectLzcntAsm_Unix(ref destination, ref length);
-				else
-					InjectLzcntAsm_Windows(ref destination, ref length);
-			}
+        partial class StoreAsArray
+        {
+            private static readonly byte[] LzcntData_Windows = new byte[LzcntLength_Windows]
+            {
+                0xF3, 0x48, 0x0F, 0xBD, 0xC1 // lzcnt rax rcx
+            };
+            private static readonly byte[] LzcntData_Unix = new byte[LzcntLength_Unix]
+            {
+                0xF3, 0x48, 0x0F, 0xBD, 0xC7 // lzcnt rax, rdi
+            };
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void InjectLzcntAsm_Windows(ref void* destination, ref uint length)
-			{
-				const int Length = 5;
-				byte[] data = new byte[Length] {
-					0xF3, 0x48, 0x0F, 0xBD, 0xC1 // lzcnt rax rcx
-                };
-				if (length < Length)
-					throw new AccessViolationException();
-				destination = (byte*)destination + length - Length;
-				fixed (byte* source = data)
-					UnsafeHelper.CopyBlock(destination, source, Length);
-				length = Length;
-			}
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            public static void InjectLzcntAsm(ref void* destination, ref uint length)
+            {
+                if (IsUnix)
+                    InjectLzcntAsm_Unix(ref destination, ref length);
+                else
+                    InjectLzcntAsm_Windows(ref destination, ref length);
+            }
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void InjectLzcntAsm_Unix(ref void* destination, ref uint length)
-			{
-				const int Length = 5;
-				byte[] data = new byte[Length] {
-					0xF3, 0x48, 0x0F, 0xBD, 0xC7 // lzcnt rax, rdi
-				};
-				if (length < Length)
-					throw new AccessViolationException();
-				destination = (byte*)destination + length - Length;
-				fixed (byte* source = data)
-					UnsafeHelper.CopyBlock(destination, source, Length);
-				length = Length;
-			}
-		}
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static void InjectLzcntAsm_Windows(ref void* destination, ref uint length)
+            {
+                const int Length = LzcntLength_Windows;
+                if (length < Length)
+                    throw new AccessViolationException();
+                destination = (byte*)destination + length - Length;
+                fixed (byte* source = LzcntData_Windows)
+                    UnsafeHelper.CopyBlock(destination, source, Length);
+                length = Length;
+            }
 
-		partial class StoreAsSpan
-		{
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			public static void InjectLzcntAsm(ref void* destination, ref uint length)
-			{
-				if (IsUnix)
-					InjectLzcntAsm_Unix(ref destination, ref length);
-				else
-					InjectLzcntAsm_Windows(ref destination, ref length);
-			}
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static void InjectLzcntAsm_Unix(ref void* destination, ref uint length)
+            {
+                const int Length = LzcntLength_Unix;
+                if (length < Length)
+                    throw new AccessViolationException();
+                destination = (byte*)destination + length - Length;
+                fixed (byte* source = LzcntData_Unix)
+                    UnsafeHelper.CopyBlock(destination, source, Length);
+                length = Length;
+            }
+        }
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void InjectLzcntAsm_Windows(ref void* destination, ref uint length)
-			{
-				const int Length = 5;
-				ReadOnlySpan<byte> data = [
-					0xF3, 0x48, 0x0F, 0xBD, 0xC1 // lzcnt eax, ecx
-                ];
-				if (length < Length)
-					throw new AccessViolationException();
-				destination = (byte*)destination + length - Length;
-				fixed (byte* source = data)
-					UnsafeHelper.CopyBlock(destination, source, Length);
-				length = Length;
-			}
+        partial class StoreAsSpan
+        {
+            private static ReadOnlySpan<byte> LzcntData_Windows =>
+            [
+                0xF3, 0x48, 0x0F, 0xBD, 0xC1 // lzcnt rax rcx
+            ];
+            private static ReadOnlySpan<byte> LzcntData_Unix =>
+            [
+                0xF3, 0x48, 0x0F, 0xBD, 0xC7 // lzcnt rax, rdi
+            ];
 
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private static void InjectLzcntAsm_Unix(ref void* destination, ref uint length)
-			{
-				const int Length = 5;
-				ReadOnlySpan<byte> data = [
-					0xF3, 0x48, 0x0F, 0xBD, 0xC7 // lzcnt rax, rdi
-                ];
-				if (length < Length)
-					throw new AccessViolationException();
-				destination = (byte*)destination + length - Length;
-				fixed (byte* source = data)
-					UnsafeHelper.CopyBlock(destination, source, Length);
-				length = Length;
-			}
-		}
-	}
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            public static void InjectLzcntAsm(ref void* destination, ref uint length)
+            {
+                if (IsUnix)
+                    InjectLzcntAsm_Unix(ref destination, ref length);
+                else
+                    InjectLzcntAsm_Windows(ref destination, ref length);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static void InjectLzcntAsm_Windows(ref void* destination, ref uint length)
+            {
+                const int Length = LzcntLength_Windows;
+                if (length < Length)
+                    throw new AccessViolationException();
+                destination = (byte*)destination + length - Length;
+                fixed (byte* source = LzcntData_Windows)
+                    UnsafeHelper.CopyBlock(destination, source, Length);
+                length = Length;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static void InjectLzcntAsm_Unix(ref void* destination, ref uint length)
+            {
+                const int Length = LzcntLength_Unix;
+                if (length < Length)
+                    throw new AccessViolationException();
+                destination = (byte*)destination + length - Length;
+                fixed (byte* source = LzcntData_Unix)
+                    UnsafeHelper.CopyBlock(destination, source, Length);
+                length = Length;
+            }
+        }
+    }
 }
 #endif
 #endif

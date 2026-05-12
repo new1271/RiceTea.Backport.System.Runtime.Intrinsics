@@ -1,4 +1,3 @@
-
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_0
 #if (X86_ARCH && B64_ARCH) || ANYCPU
 
@@ -12,6 +11,9 @@ partial class X86Base
 {
     unsafe partial class X64
     {
+        private const int BsrLength_Windows = 4;
+        private const int BsrLength_Unix = 4;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectBsrAsm(ref void* destination, ref uint length)
         {
@@ -27,6 +29,15 @@ partial class X86Base
 
         partial class StoreAsArray
         {
+            private static readonly byte[] BsrData_Windows = new byte[BsrLength_Windows]
+            {
+                0x48, 0x0F, 0xBD, 0xC1 // bsr rax, rcx
+			};
+            private static readonly byte[] BsrData_Unix = new byte[BsrLength_Unix]
+            {
+                0x48, 0x0F, 0xBD, 0xC7 // bsr rax, rdi
+            };
+
             [MethodImpl(MethodImplOptions.NoInlining)]
             public static void InjectBsrAsm(ref void* destination, ref uint length)
             {
@@ -39,14 +50,11 @@ partial class X86Base
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static void InjectBsrAsm_Windows(ref void* destination, ref uint length)
             {
-                const int Length = 4;
-                byte[] data = new byte[Length] {
-                    0x48, 0x0F, 0xBD, 0xC1 // bsr rax, rcx
-                };
+                const int Length = BsrLength_Windows;
                 if (length < Length)
                     throw new AccessViolationException();
                 destination = (byte*)destination + length - Length;
-                fixed (byte* source = data)
+                fixed (byte* source = BsrData_Windows)
                     UnsafeHelper.CopyBlock(destination, source, Length);
                 length = Length;
             }
@@ -54,14 +62,11 @@ partial class X86Base
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static void InjectBsrAsm_Unix(ref void* destination, ref uint length)
             {
-                const int Length = 4;
-                byte[] data = new byte[Length] {
-                    0x48, 0x0F, 0xBD, 0xC7 // bsr rax, rdi
-                };
+                const int Length = BsrLength_Unix;
                 if (length < Length)
                     throw new AccessViolationException();
                 destination = (byte*)destination + length - Length;
-                fixed (byte* source = data)
+                fixed (byte* source = BsrData_Unix)
                     UnsafeHelper.CopyBlock(destination, source, Length);
                 length = Length;
             }
@@ -69,6 +74,15 @@ partial class X86Base
 
         partial class StoreAsSpan
         {
+            private static ReadOnlySpan<byte> BsrData_Windows =>
+            [
+                0x48, 0x0F, 0xBD, 0xC1 // bsr rax, rcx
+			];
+            private static ReadOnlySpan<byte> BsrData_Unix =>
+            [
+                0x48, 0x0F, 0xBD, 0xC7 // bsr rax, rdi
+            ];
+
             [MethodImpl(MethodImplOptions.NoInlining)]
             public static void InjectBsrAsm(ref void* destination, ref uint length)
             {
@@ -81,14 +95,11 @@ partial class X86Base
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static void InjectBsrAsm_Windows(ref void* destination, ref uint length)
             {
-                const int Length = 4;
-                ReadOnlySpan<byte> data = [
-                    0x48, 0x0F, 0xBD, 0xC1 // bsr rax, rcx
-                ];
+                const int Length = BsrLength_Windows;
                 if (length < Length)
                     throw new AccessViolationException();
                 destination = (byte*)destination + length - Length;
-                fixed (byte* source = data)
+                fixed (byte* source = BsrData_Windows)
                     UnsafeHelper.CopyBlock(destination, source, Length);
                 length = Length;
             }
@@ -96,14 +107,11 @@ partial class X86Base
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static void InjectBsrAsm_Unix(ref void* destination, ref uint length)
             {
-                const int Length = 4;
-                ReadOnlySpan<byte> data = [
-                    0x48, 0x0F, 0xBD, 0xC7 // bsr rax, rdi
-                ];
+                const int Length = BsrLength_Unix;
                 if (length < Length)
                     throw new AccessViolationException();
                 destination = (byte*)destination + length - Length;
-                fixed (byte* source = data)
+                fixed (byte* source = BsrData_Unix)
                     UnsafeHelper.CopyBlock(destination, source, Length);
                 length = Length;
             }

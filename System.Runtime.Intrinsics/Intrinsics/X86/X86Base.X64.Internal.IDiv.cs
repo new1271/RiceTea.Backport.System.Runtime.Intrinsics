@@ -12,6 +12,9 @@ partial class X86Base
 {
     unsafe partial class X64
     {
+        private const int IDivLength_Windows = 9;
+        private const int IDivLength_Unix = 15;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectIDivAsm(ref void* destination, ref uint length)
         {
@@ -27,6 +30,21 @@ partial class X86Base
 
         partial class StoreAsArray
         {
+            private static readonly byte[] IDivData_Windows = new byte[IDivLength_Windows]
+            {
+                0x48, 0x89, 0xC8, // mov rax, rcx
+                0x49, 0xF7, 0xF8, // idiv r8
+                0x49, 0x89, 0x11 // mov qword ptr [r9], rdx
+            };
+            private static readonly byte[] IDivData_Unix = new byte[IDivLength_Unix]
+            {
+                0x48, 0x89, 0xF8, // mov rax, rdi
+                0x48, 0x89, 0xD7, // mov rdi, rdx
+                0x48, 0x89, 0xF2, // mov rdx, rsi
+                0x48, 0xF7, 0xFF, // idiv rdi
+                0x48, 0x89, 0x11 // mov qword ptr [rcx], rdx
+            };
+
             [MethodImpl(MethodImplOptions.NoInlining)]
             public static void InjectIDivAsm(ref void* destination, ref uint length)
             {
@@ -39,16 +57,11 @@ partial class X86Base
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static void InjectIDivAsm_Windows(ref void* destination, ref uint length)
             {
-                const int Length = 9;
-                byte[] data = new byte[Length] {
-                    0x48, 0x89, 0xC8, // mov rax, rcx
-                    0x49, 0xF7, 0xF8, // idiv r8
-                    0x49, 0x89, 0x11 // mov qword ptr [r9], rdx
-                };
+                const int Length = IDivLength_Windows;
                 if (length < Length)
                     throw new AccessViolationException();
                 destination = (byte*)destination + length - Length;
-                fixed (byte* source = data)
+                fixed (byte* source = IDivData_Windows)
                     UnsafeHelper.CopyBlock(destination, source, Length);
                 length = Length;
             }
@@ -56,18 +69,11 @@ partial class X86Base
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static void InjectIDivAsm_Unix(ref void* destination, ref uint length)
             {
-                const int Length = 15;
-                byte[] data = new byte[Length] {
-                    0x48, 0x89, 0xF8, // mov rax, rdi
-                    0x48, 0x89, 0xD7, // mov rdi, rdx
-                    0x48, 0x89, 0xF2, // mov rdx, rsi
-                    0x48, 0xF7, 0xFF, // idiv rdi
-                    0x48, 0x89, 0x11 // mov qword ptr [rcx], rdx
-                };
+                const int Length = IDivLength_Unix;
                 if (length < Length)
                     throw new AccessViolationException();
                 destination = (byte*)destination + length - Length;
-                fixed (byte* source = data)
+                fixed (byte* source = IDivData_Unix)
                     UnsafeHelper.CopyBlock(destination, source, Length);
                 length = Length;
             }
@@ -75,6 +81,21 @@ partial class X86Base
 
         partial class StoreAsSpan
         {
+            private static ReadOnlySpan<byte> IDivData_Windows =>
+            [
+                0x48, 0x89, 0xC8, // mov rax, rcx
+                0x49, 0xF7, 0xF8, // idiv r8
+                0x49, 0x89, 0x11 // mov qword ptr [r9], rdx
+            ];
+            private static ReadOnlySpan<byte> IDivData_Unix =>
+            [
+                0x48, 0x89, 0xF8, // mov rax, rdi
+                0x48, 0x89, 0xD7, // mov rdi, rdx
+                0x48, 0x89, 0xF2, // mov rdx, rsi
+                0x48, 0xF7, 0xFF, // idiv rdi
+                0x48, 0x89, 0x11 // mov qword ptr [rcx], rdx
+            ];
+
             [MethodImpl(MethodImplOptions.NoInlining)]
             public static void InjectIDivAsm(ref void* destination, ref uint length)
             {
@@ -87,16 +108,11 @@ partial class X86Base
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static void InjectIDivAsm_Windows(ref void* destination, ref uint length)
             {
-                const int Length = 9;
-                ReadOnlySpan<byte> data = [
-                    0x48, 0x89, 0xC8, // mov rax, rcx
-                    0x49, 0xF7, 0xF8, // idiv r8
-                    0x49, 0x89, 0x11 // mov qword ptr [r9], rdx
-                ];
+                const int Length = IDivLength_Windows;
                 if (length < Length)
                     throw new AccessViolationException();
                 destination = (byte*)destination + length - Length;
-                fixed (byte* source = data)
+                fixed (byte* source = IDivData_Windows)
                     UnsafeHelper.CopyBlock(destination, source, Length);
                 length = Length;
             }
@@ -104,18 +120,11 @@ partial class X86Base
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static void InjectIDivAsm_Unix(ref void* destination, ref uint length)
             {
-                const int Length = 15;
-                ReadOnlySpan<byte> data = [
-                    0x48, 0x89, 0xF8, // mov rax, rdi
-                    0x48, 0x89, 0xD7, // mov rdi, rdx
-                    0x48, 0x89, 0xF2, // mov rdx, rsi
-                    0x48, 0xF7, 0xFF, // idiv rdi
-                    0x48, 0x89, 0x11 // mov qword ptr [rcx], rdx
-                ];
+                const int Length = IDivLength_Unix;
                 if (length < Length)
                     throw new AccessViolationException();
                 destination = (byte*)destination + length - Length;
-                fixed (byte* source = data)
+                fixed (byte* source = IDivData_Unix)
                     UnsafeHelper.CopyBlock(destination, source, Length);
                 length = Length;
             }

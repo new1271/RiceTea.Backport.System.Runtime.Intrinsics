@@ -10,6 +10,14 @@ namespace System.Runtime.Intrinsics.X86;
 
 unsafe partial class Lzcnt
 {
+    private const int LzcntLength_Windows = 4;
+#if (B32_ARCH || ANYCPU)
+    private const int LzcntLength_Unix_X86 = 6;
+#endif
+#if (B64_ARCH || ANYCPU)
+    private const int LzcntLength_Unix_X64 = 4;
+#endif
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void InjectLzcntAsm(ref void* destination, ref uint length)
     {
@@ -21,6 +29,23 @@ unsafe partial class Lzcnt
 
     partial class StoreAsArray
     {
+        private static readonly byte[] LzcntData_Windows = new byte[LzcntLength_Windows]
+        {
+            0xF3, 0x0F, 0xBD, 0xC1 // lzcnt eax, ecx
+        };
+#if (B32_ARCH || ANYCPU)
+        private static readonly byte[] LzcntData_Unix_X86 = new byte[LzcntLength_Unix_X86]
+        {
+            0xF3, 0x0F, 0xBD, 0x44, 0x24, 0x04 // lzcnt eax, dword ptr [esp+4]
+        };
+#endif
+#if (B64_ARCH || ANYCPU)
+        private static readonly byte[] LzcntData_Unix_X64 = new byte[LzcntLength_Unix_X64]
+        {
+            0xF3, 0x0F, 0xBD, 0xC7 // lzcnt eax, edi
+        };
+#endif
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void InjectLzcntAsm(ref void* destination, ref uint length)
         {
@@ -44,50 +69,38 @@ unsafe partial class Lzcnt
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectLzcntAsm_Windows(ref void* destination, ref uint length)
         {
-            const int Length = 4;
-            byte[] data = new byte[Length]
-            {
-                0xF3, 0x0F, 0xBD, 0xC1 // lzcnt eax, ecx
-            };
+            const int Length = LzcntLength_Windows;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = LzcntData_Windows)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
 
 #if B32_ARCH || ANYCPU
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static void InjectLzcntAsm_Unix_X86(ref void* destination, ref uint length)
-		{
-			const int Length = 6;
-			byte[] data = new byte[Length]
-			{
-				0xF3, 0x0F, 0xBD, 0x44, 0x24, 0x04 // lzcnt eax, dword ptr [esp+4]
-            };
-			if (length < Length)
-				throw new AccessViolationException();
-			destination = (byte*)destination + length - Length;
-			fixed (byte* source = data)
-				UnsafeHelper.CopyBlock(destination, source, Length);
-			length = Length;
-		}
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectLzcntAsm_Unix_X86(ref void* destination, ref uint length)
+        {
+            const int Length = LzcntLength_Unix_X86;
+            if (length < Length)
+                throw new AccessViolationException();
+            destination = (byte*)destination + length - Length;
+            fixed (byte* source = LzcntData_Unix_X86)
+                UnsafeHelper.CopyBlock(destination, source, Length);
+            length = Length;
+        }
 #endif
 
 #if B64_ARCH || ANYCPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectLzcntAsm_Unix_X64(ref void* destination, ref uint length)
         {
-            const int Length = 4;
-            byte[] data = new byte[Length]
-            {
-                 0xF3, 0x0F, 0xBD, 0xC7 // lzcnt eax, edi
-            };
+            const int Length = LzcntLength_Unix_X64;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = LzcntData_Unix_X64)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
@@ -96,6 +109,23 @@ unsafe partial class Lzcnt
 
     partial class StoreAsSpan
     {
+        private static ReadOnlySpan<byte> LzcntData_Windows =>
+        [
+            0xF3, 0x0F, 0xBD, 0xC1 // lzcnt eax, ecx
+        ];
+#if (B32_ARCH || ANYCPU)
+        private static ReadOnlySpan<byte> LzcntData_Unix_X86 =>
+        [
+            0xF3, 0x0F, 0xBD, 0x44, 0x24, 0x04 // lzcnt eax, dword ptr [esp+4]
+        ];
+#endif
+#if (B64_ARCH || ANYCPU)
+        private static ReadOnlySpan<byte> LzcntData_Unix_X64 =>
+        [
+            0xF3, 0x0F, 0xBD, 0xC7 // lzcnt eax, edi
+        ];
+#endif
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void InjectLzcntAsm(ref void* destination, ref uint length)
         {
@@ -119,47 +149,38 @@ unsafe partial class Lzcnt
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectLzcntAsm_Windows(ref void* destination, ref uint length)
         {
-            const int Length = 4;
-            ReadOnlySpan<byte> data = [
-                0xF3, 0x0F, 0xBD, 0xC1 // lzcnt eax, ecx
-            ];
+            const int Length = LzcntLength_Windows;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = LzcntData_Windows)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }
 
 #if B32_ARCH || ANYCPU
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static void InjectLzcntAsm_Unix_X86(ref void* destination, ref uint length)
-		{
-			const int Length = 6;
-			ReadOnlySpan<byte> data = [
-				0xF3, 0x0F, 0xBD, 0x44, 0x24, 0x04 // lzcnt eax, dword ptr [esp+4]
-            ];
-			if (length < Length)
-				throw new AccessViolationException();
-			destination = (byte*)destination + length - Length;
-			fixed (byte* source = data)
-				UnsafeHelper.CopyBlock(destination, source, Length);
-			length = Length;
-		}
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void InjectLzcntAsm_Unix_X86(ref void* destination, ref uint length)
+        {
+            const int Length = LzcntLength_Unix_X86;
+            if (length < Length)
+                throw new AccessViolationException();
+            destination = (byte*)destination + length - Length;
+            fixed (byte* source = LzcntData_Unix_X86)
+                UnsafeHelper.CopyBlock(destination, source, Length);
+            length = Length;
+        }
 #endif
 
 #if B64_ARCH || ANYCPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void InjectLzcntAsm_Unix_X64(ref void* destination, ref uint length)
         {
-            const int Length = 4;
-            ReadOnlySpan<byte> data = [
-                0xF3, 0x0F, 0xBD, 0xC7 // lzcnt eax, edi
-            ];
+            const int Length = LzcntLength_Unix_X64;
             if (length < Length)
                 throw new AccessViolationException();
             destination = (byte*)destination + length - Length;
-            fixed (byte* source = data)
+            fixed (byte* source = LzcntData_Unix_X64)
                 UnsafeHelper.CopyBlock(destination, source, Length);
             length = Length;
         }

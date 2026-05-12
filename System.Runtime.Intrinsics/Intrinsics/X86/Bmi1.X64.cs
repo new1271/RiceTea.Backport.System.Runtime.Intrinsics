@@ -1,4 +1,3 @@
-
 #if NETSTANDARD2_0_OR_GREATER
 
 namespace System.Runtime.Intrinsics.X86;
