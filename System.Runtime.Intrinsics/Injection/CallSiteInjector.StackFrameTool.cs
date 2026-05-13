@@ -1,6 +1,6 @@
 using System;
-using System.Diagnostics;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -16,17 +16,19 @@ unsafe partial class CallSiteInjector
      */
     private static class StackFrameTool
     {
+        private delegate void StackFrameFieldsGetter(object instance, out IntPtr[] methodHandles, out int[] offsets);
+
         private static readonly Type? _type, _type2;
-        private static readonly FieldInfo? _rgMethodHandleField, _rgiOffsetField;
         private static readonly void* _initializeSourceInfoFunc_Long, _initializeSourceInfoFunc_Short,
             _typeConstructor_Long, _typeConstructor_Short, _type2Constructor, _runtimeHandleConstructor;
+        private static readonly StackFrameFieldsGetter? _stackFrameHelperGetterDelegate;
 
         static StackFrameTool()
         {
             Type? type, type2;
             ConstructorInfo? runtimeHandleConstructor, constructor, constructor2, constructor3;
             MethodInfo? initializeSourceInfoMethod;
-            FieldInfo? rgMethodHandleField, rgiOffsetField;
+            StackFrameFieldsGetter stackFrameHelperGetterDelegate;
             bool isLongConstructor, isLongSourceInfoMethod;
 
             try
@@ -81,15 +83,38 @@ unsafe partial class CallSiteInjector
                 {
                     isLongSourceInfoMethod = false;
                 }
-
-                rgMethodHandleField = type.GetField("rgMethodHandle", BindingFlags.NonPublic | BindingFlags.Instance);
+                FieldInfo? rgMethodHandleField = type.GetField("rgMethodHandle", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (rgMethodHandleField is null || rgMethodHandleField.FieldType != typeof(IntPtr[]))
                     return;
 
-                rgiOffsetField = type.GetField("rgiOffset", BindingFlags.NonPublic | BindingFlags.Instance);
+                FieldInfo? rgiOffsetField = type.GetField("rgiOffset", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (rgiOffsetField is null || rgiOffsetField.FieldType != typeof(int[]))
                     return;
 
+                DynamicMethod stackFrameHelperGetter = new DynamicMethod(
+                    name: "StackFrameHelperGetter", 
+                    returnType: typeof(void), 
+                    parameterTypes: new Type[] { typeof(object), typeof(IntPtr[]).MakeByRefType(), typeof(int[]).MakeByRefType() }, 
+                    owner: type, 
+                    skipVisibility: true);
+
+                ILGenerator generator = stackFrameHelperGetter.GetILGenerator();
+                generator.DeclareLocal(type);
+                generator.Emit(OpCodes.Ldarg_0);
+                generator.Emit(OpCodes.Castclass, type);
+                generator.Emit(OpCodes.Stloc_0);
+                generator.Emit(OpCodes.Ldarg_1);
+                generator.Emit(OpCodes.Ldloc_0);
+                generator.Emit(OpCodes.Ldfld, rgMethodHandleField);
+                generator.Emit(OpCodes.Stind_Ref);
+                generator.Emit(OpCodes.Ldarg_2);
+                generator.Emit(OpCodes.Ldloc_0);
+                generator.Emit(OpCodes.Ldfld, rgiOffsetField);
+                generator.Emit(OpCodes.Stind_Ref);
+                generator.Emit(OpCodes.Ret);
+
+                stackFrameHelperGetterDelegate = (StackFrameFieldsGetter)stackFrameHelperGetter.CreateDelegate(typeof(StackFrameFieldsGetter));
+                stackFrameHelperGetterDelegate.Method.MethodHandle.GetFunctionPointer();
             }
             catch (Exception)
             {
@@ -107,8 +132,7 @@ unsafe partial class CallSiteInjector
                 _initializeSourceInfoFunc_Long = (void*)initializeSourceInfoMethod.MethodHandle.GetFunctionPointer();
             else
                 _initializeSourceInfoFunc_Short = (void*)initializeSourceInfoMethod.MethodHandle.GetFunctionPointer();
-            _rgMethodHandleField = rgMethodHandleField;
-            _rgiOffsetField = rgiOffsetField;
+            _stackFrameHelperGetterDelegate = stackFrameHelperGetterDelegate;
         }
 
         public static bool IsSupported => _type is not null;
@@ -123,7 +147,7 @@ unsafe partial class CallSiteInjector
 
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static bool TryGetNativeFrame(int skipFrames, out RuntimeMethodHandle handle, out int offset)
+        public static bool TryGetNativeFrame(int skipFrames, out RuntimeMethodHandle methodHandle, out int offset)
         {
             object? stackFrameHelper = null;
             try
@@ -170,21 +194,25 @@ unsafe partial class CallSiteInjector
                     IL.Emit.Calli(StandAloneMethodSig.ManagedMethod(CallingConventions.HasThis, typeof(void), [typeof(bool), typeof(Exception)]));
                 }
 
-                IntPtr[] rgHandles = (IntPtr[])_rgMethodHandleField!.GetValue(stackFrameHelper)!;
-                int iNumOfFrames = rgHandles.Length;
+                StackFrameFieldsGetter? getterDelegate = _stackFrameHelperGetterDelegate;
+                if (getterDelegate is null)
+                    goto Failed;
+                getterDelegate.Invoke(stackFrameHelper, out IntPtr[] rgMethodHandle, out int[] rgiOffset);
+
+                int iNumOfFrames = rgMethodHandle.Length;
 
                 IL.Emit.Ldtoken(new MethodRef(typeof(StackFrameTool), nameof(TryGetNativeFrame)));
                 IL.Pop(out RuntimeMethodHandle selfMethodHandle);
-                skipFrames += CalculateExtraSkipFrames(stackFrameHelper, rgHandles, selfMethodHandle) + 1; // self frame
+                skipFrames += CalculateExtraSkipFrames(stackFrameHelper, rgMethodHandle, selfMethodHandle) + 1; // self frame
 
                 if (
                     (iNumOfFrames - skipFrames) <= 0 ||
                     // StackTrace.CalculateFramesToSkip(StackFrameHelper, int) is too slow and creates lots of temporary RuntimeMethodInfo, we use a faster way to get same output
-                    !TryGetHandle(stackFrameHelper, rgHandles[skipFrames], out handle)
+                    !TryGetHandle(stackFrameHelper, rgMethodHandle[skipFrames], out methodHandle)
                     )
                     goto Failed;
 
-                offset = ((int[])_rgiOffsetField!.GetValue(stackFrameHelper)!)[skipFrames];
+                offset = rgiOffset[skipFrames];
             }
             catch (Exception)
             {
@@ -198,21 +226,21 @@ unsafe partial class CallSiteInjector
             return true;
 
         Failed:
-            handle = default;
+            methodHandle = default;
             offset = default;
             return false;
         }
 
-        private static bool TryGetHandle(object stackFrameHelper, IntPtr rgHandle, out RuntimeMethodHandle handle)
+        private static bool TryGetHandle(object stackFrameHelper, IntPtr handle, out RuntimeMethodHandle methodHandle)
         {
-            if (rgHandle == IntPtr.Zero)
+            if (handle == IntPtr.Zero)
             {
-                handle = default;
+                methodHandle = default;
                 return false;
             }
             object stub = CreateUninitializedObject(_type2!);
             IL.Push(stub);
-            IL.Push(rgHandle);
+            IL.Push(handle);
             IL.Push(stackFrameHelper);
             IL.Push(_type2Constructor);
             // for .NET Framework and .NET Core, the signiture is .ctor(IntPtr, object)
@@ -220,26 +248,26 @@ unsafe partial class CallSiteInjector
             // but RuntimeMethodHandleInternal just a wrapper structure for IntPtr, we can ignore the wrapper, just passes raw IntPtr argument!
             IL.Emit.Calli(StandAloneMethodSig.ManagedMethod(CallingConventions.HasThis, typeof(void), [typeof(IntPtr), typeof(object)]));
 
-            IL.PushOutRef(out handle);
+            IL.PushOutRef(out methodHandle);
             IL.Push(stub);
             IL.Push(_runtimeHandleConstructor);
             IL.Emit.Calli(StandAloneMethodSig.ManagedMethod(CallingConventions.HasThis, typeof(void), [typeof(object)]));
             return true;
         }
 
-        private static int CalculateExtraSkipFrames(object stackFrameHelper, IntPtr[] rgHandles, RuntimeMethodHandle archorHandle)
+        private static int CalculateExtraSkipFrames(object stackFrameHelper, IntPtr[] rgMethodHandle, RuntimeMethodHandle archorHandle)
         {
             void* archorAddress = null;
             int i = 0;
-            foreach (IntPtr rgHandle in rgHandles)
+            foreach (IntPtr handle in rgMethodHandle)
             {
-                if (TryGetHandle(stackFrameHelper, rgHandles[i], out RuntimeMethodHandle handle))
+                if (TryGetHandle(stackFrameHelper, rgMethodHandle[i], out RuntimeMethodHandle methodHandle))
                 {
-                    if (archorHandle == handle)
+                    if (archorHandle == methodHandle)
                         break;
                     if (archorAddress is null)
                         archorAddress = FindRealEntryPoint(archorHandle);
-                    if (archorAddress == FindRealEntryPoint(handle))
+                    if (archorAddress == FindRealEntryPoint(methodHandle))
                         break;
                 }
                 i++;
