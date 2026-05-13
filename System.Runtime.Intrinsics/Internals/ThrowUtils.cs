@@ -18,4 +18,10 @@ internal static class ThrowUtils
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static T ThrowPlatformNotSupported<T>() => throw new PlatformNotSupportedException();
+
+    [DoesNotReturn]
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowAccessViolation() => throw new AccessViolationException();
 }

@@ -3,6 +3,8 @@
 
 using System.Runtime.CompilerServices;
 
+using RiceTea.Backport.Internals;
+
 namespace System.Runtime.Intrinsics.X86;
 
 unsafe partial class X86Base
@@ -13,10 +15,10 @@ unsafe partial class X86Base
         const int Length = sizeof(ushort);
         const ushort Data = 0x90_F3; // pause (f3 90)
         if (length < Length)
-            throw new AccessViolationException();
+            ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
-        *(ushort*)destination = Data;
         length = Length;
+        UnsafeHelper.WriteUnaligned(destination, Data);
     }
 }
 #endif

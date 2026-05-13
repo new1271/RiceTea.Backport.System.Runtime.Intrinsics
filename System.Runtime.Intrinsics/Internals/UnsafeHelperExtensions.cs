@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 using InlineMethod;
 
@@ -10,7 +11,7 @@ namespace RiceTea.Backport.Internals
         {
             [Inline(InlineBehavior.Remove)]
             public static ref readonly T GetReference<T>(scoped in ReadOnlySpan<T> span)
-                => ref span.GetPinnableReference();
+                => ref MemoryMarshal.GetReference(span);
         }
     }
 }

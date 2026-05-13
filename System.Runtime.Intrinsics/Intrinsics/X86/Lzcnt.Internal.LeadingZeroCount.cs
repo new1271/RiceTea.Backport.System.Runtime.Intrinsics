@@ -42,17 +42,17 @@ unsafe partial class Lzcnt
     {
         const int Length = LzcntLength_Windows;
         if (length < Length)
-            throw new AccessViolationException();
+            ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
 #if NETSTANDARD2_0
         if (!_spanExists)
         {
-            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetLzcntDataReference_Windows(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetLzcntDataReference_Windows(), Length);
             return;
         }
 #endif
-        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetLzcntDataReference_Windows(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetLzcntDataReference_Windows(), Length);
     }
 
 #if B32_ARCH || ANYCPU
@@ -61,17 +61,17 @@ unsafe partial class Lzcnt
     {
         const int Length = LzcntLength_Unix_X86;
         if (length < Length)
-            throw new AccessViolationException();
+            ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
 #if NETSTANDARD2_0
         if (!_spanExists)
         {
-            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetLzcntDataReference_Unix_X86(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetLzcntDataReference_Unix_X86(), Length);
             return;
         }
 #endif
-        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetLzcntDataReference_Unix_X86(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetLzcntDataReference_Unix_X86(), Length);
     }
 #endif
 
@@ -81,17 +81,17 @@ unsafe partial class Lzcnt
     {
         const int Length = LzcntLength_Unix_X64;
         if (length < Length)
-            throw new AccessViolationException();
+            ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
 #if NETSTANDARD2_0
         if (!_spanExists)
         {
-            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetLzcntDataReference_Unix_X64(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetLzcntDataReference_Unix_X64(), Length);
             return;
         }
 #endif
-        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetLzcntDataReference_Unix_X64(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetLzcntDataReference_Unix_X64(), Length);
     }
 #endif
 

@@ -43,17 +43,17 @@ unsafe partial class X86Base
     {
         const int Length = BsfLength_Windows;
         if (length < Length)
-            throw new AccessViolationException();
+            ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
 #if NETSTANDARD2_0
         if (!_spanExists)
         {
-            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetBsfDataReference_Windows(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetBsfDataReference_Windows(), Length);
             return;
         }
 #endif
-        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetBsfDataReference_Windows(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetBsfDataReference_Windows(), Length);
     }
 
 #if B32_ARCH || ANYCPU
@@ -62,17 +62,17 @@ unsafe partial class X86Base
     {
         const int Length = BsfLength_Unix_X86;
         if (length < Length)
-            throw new AccessViolationException();
+            ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
 #if NETSTANDARD2_0
         if (!_spanExists)
         {
-            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetBsfDataReference_Unix_X86(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetBsfDataReference_Unix_X86(), Length);
             return;
         }
 #endif
-        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetBsfDataReference_Unix_X86(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetBsfDataReference_Unix_X86(), Length);
     }
 #endif
 
@@ -82,17 +82,17 @@ unsafe partial class X86Base
     {
         const int Length = BsfLength_Unix_X64;
         if (length < Length)
-            throw new AccessViolationException();
+            ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
 #if NETSTANDARD2_0
         if (!_spanExists)
         {
-            UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetBsfDataReference_Unix_X64(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetBsfDataReference_Unix_X64(), Length);
             return;
         }
 #endif
-        UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetBsfDataReference_Unix_X64(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetBsfDataReference_Unix_X64(), Length);
     }
 #endif
 

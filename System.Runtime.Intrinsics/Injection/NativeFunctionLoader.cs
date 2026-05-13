@@ -15,7 +15,6 @@ public static unsafe partial class NativeFunctionLoader
 {
     private static readonly object _syncLock = new object();
     private static readonly nuint _pageSize = unchecked((nuint)Environment.SystemPageSize);
-    private static readonly PlatformID _platformId = Environment.OSVersion.Platform;
 
     private static byte* _pageStartAddress, _pageNextAddress, _pageEndAddress;
     private static nuint _version, _readerCounter, _writerFlag;
@@ -59,7 +58,7 @@ public static unsafe partial class NativeFunctionLoader
         {
             destination = GetValidStartAddress(length);
             MemoryHelper.LetMemoryPageCanRW(destination, length);
-            UnsafeHelper.CopyBlock(destination, in source, (uint)length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in source, length);
             MemoryHelper.LetMemoryPageCanRX(destination, length);
             MemoryHelper.FlushInstructionCache(destination, length);
         }
@@ -85,7 +84,7 @@ public static unsafe partial class NativeFunctionLoader
         {
             destination = GetValidStartAddress(length);
             MemoryHelper.LetMemoryPageCanRW(destination, length);
-            UnsafeHelper.CopyBlock(destination, source, length);
+            UnsafeHelper.CopyBlockUnaligned(destination, source, length);
             MemoryHelper.LetMemoryPageCanRX(destination, length);
             MemoryHelper.FlushInstructionCache(destination, length);
         }

@@ -28,17 +28,17 @@ partial class X86Base
         {
             const int Length = DivLength_Windows;
             if (length < Length)
-                throw new AccessViolationException();
+                ThrowUtils.ThrowAccessViolation();
             destination = (byte*)destination + length - Length;
             length = Length;
 #if NETSTANDARD2_0
             if (!_spanExists)
             {
-                UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetDivDataReference_Windows(), Length);
+                UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetDivDataReference_Windows(), Length);
                 return;
             }
 #endif
-            UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetDivDataReference_Windows(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetDivDataReference_Windows(), Length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,17 +46,17 @@ partial class X86Base
         {
             const int Length = DivLength_Unix;
             if (length < Length)
-                throw new AccessViolationException();
+                ThrowUtils.ThrowAccessViolation();
             destination = (byte*)destination + length - Length;
             length = Length;
 #if NETSTANDARD2_0
             if (!_spanExists)
             {
-                UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetDivDataReference_Unix(), Length);
+                UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetDivDataReference_Unix(), Length);
                 return;
             }
 #endif
-            UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetDivDataReference_Unix(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetDivDataReference_Unix(), Length);
         }
 
 #if NETSTANDARD2_0

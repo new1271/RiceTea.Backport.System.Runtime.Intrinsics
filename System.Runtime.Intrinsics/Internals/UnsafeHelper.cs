@@ -24,7 +24,7 @@ internal static unsafe class UnsafeHelper
 
     public static int PointerSize
     {
-        [Inline(InlineBehavior.Keep, export: true)]
+        [Inline(InlineBehavior.Remove)]
         get => PointerSizeConstant switch
         {
             PointerSizeConstant_Indeterminate => sizeof(void*),
@@ -88,14 +88,14 @@ internal static unsafe class UnsafeHelper
         throw IL.Unreachable();
     }
 
-    [Inline(InlineBehavior.Keep, export: true)]
+    [Inline(InlineBehavior.Remove)]
     public static T As<T>(object source) where T : class
     {
         IL.Push(source);
         return IL.Return<T>();
     }
 
-    [Inline(InlineBehavior.Keep, export: true)]
+    [Inline(InlineBehavior.Remove)]
     public static nuint ByteOffsetUnsigned<T>(ref readonly T origin, ref readonly T target)
     {
         IL.PushInRef(in target);
@@ -105,30 +105,67 @@ internal static unsafe class UnsafeHelper
     }
 
     [Inline(InlineBehavior.Remove)]
-    public static void CopyBlock(void* destination, void* source, uint byteCount)
+    public static void CopyBlockUnaligned(void* destination, void* source, uint byteCount)
     {
         IL.Emit.Ldarg_0();
         IL.Emit.Ldarg_1();
         IL.Emit.Ldarg_2();
+        IL.Emit.Unaligned(1);
         IL.Emit.Cpblk();
     }
 
     [Inline(InlineBehavior.Remove)]
-    public static void CopyBlock(void* destination, ref readonly byte source, uint byteCount)
+    public static void CopyBlockUnaligned(void* destination, ref readonly byte source, uint byteCount)
     {
         IL.Emit.Ldarg_0();
         IL.Emit.Ldarg_1();
         IL.Emit.Ldarg_2();
+        IL.Emit.Unaligned(1);
         IL.Emit.Cpblk();
     }
 
     [Inline(InlineBehavior.Remove)]
-    public static void InitBlock(void* ptr, byte b, uint byteCount)
+    public static void InitBlockUnaligned(void* ptr, byte b, uint byteCount)
     {
         IL.Emit.Ldarg_0();
         IL.Emit.Ldarg_1();
         IL.Emit.Ldarg_2();
+        IL.Emit.Unaligned(1);
         IL.Emit.Initblk();
+    }
+
+    [Inline(InlineBehavior.Remove)]
+    public static T Read<T>(void* ptr)
+    {
+        IL.Emit.Ldarg_0();
+        IL.Emit.Ldobj<T>();
+        return IL.Return<T>();
+    }
+
+    [Inline(InlineBehavior.Remove)]
+    public static T ReadUnaligned<T>(void* ptr)
+    {
+        IL.Emit.Ldarg_0();
+        IL.Emit.Unaligned(1);
+        IL.Emit.Ldobj<T>();
+        return IL.Return<T>();
+    }
+
+    [Inline(InlineBehavior.Remove)]
+    public static void Write<T>(void* ptr, T value)
+    {
+        IL.Emit.Ldarg_0();
+        IL.Emit.Ldarg_1();
+        IL.Emit.Stobj<T>();
+    }
+
+    [Inline(InlineBehavior.Remove)]
+    public static void WriteUnaligned<T>(void* ptr, T value)
+    {
+        IL.Emit.Ldarg_0();
+        IL.Emit.Ldarg_1();
+        IL.Emit.Unaligned(1);
+        IL.Emit.Stobj<T>();
     }
 
 #if NET5_0_OR_GREATER

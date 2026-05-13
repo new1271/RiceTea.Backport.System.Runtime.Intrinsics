@@ -28,17 +28,17 @@ partial class Bmi1
         {
             const int Length = TzcntLength_Windows;
             if (length < Length)
-                throw new AccessViolationException();
+                ThrowUtils.ThrowAccessViolation();
             destination = (byte*)destination + length - Length;
             length = Length;
 #if NETSTANDARD2_0
             if (!_spanExists)
             {
-                UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetTzcntDataReference_Windows(), Length);
+                UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetTzcntDataReference_Windows(), Length);
                 return;
             }
 #endif
-            UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetTzcntDataReference_Windows(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetTzcntDataReference_Windows(), Length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,17 +46,17 @@ partial class Bmi1
         {
             const int Length = TzcntLength_Unix;
             if (length < Length)
-                throw new AccessViolationException();
+                ThrowUtils.ThrowAccessViolation();
             destination = (byte*)destination + length - Length;
             length = Length;
 #if NETSTANDARD2_0
             if (!_spanExists)
             {
-                UnsafeHelper.CopyBlock(destination, in StoreAsArray.GetTzcntDataReference_Unix(), Length);
+                UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetTzcntDataReference_Unix(), Length);
                 return;
             }
 #endif
-            UnsafeHelper.CopyBlock(destination, in StoreAsSpan.GetTzcntDataReference_Unix(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetTzcntDataReference_Unix(), Length);
         }
 
 #if NETSTANDARD2_0
