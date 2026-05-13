@@ -114,7 +114,6 @@ unsafe partial class CallSiteInjector
                 generator.Emit(OpCodes.Ret);
 
                 stackFrameHelperGetterDelegate = (StackFrameFieldsGetter)stackFrameHelperGetter.CreateDelegate(typeof(StackFrameFieldsGetter));
-                stackFrameHelperGetterDelegate.Method.MethodHandle.GetFunctionPointer();
             }
             catch (Exception)
             {
