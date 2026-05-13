@@ -144,9 +144,12 @@ public static unsafe partial class CallSiteInjector
             return;
         StrongBox<nuint> counter = _addressLockDict.GetOrAdd((nuint)address, static _ => new StrongBox<nuint>(value: 0));
         AtomicHelper.Increment(ref counter.Value);
+        if (Monitor.TryEnter(counter))
+            return;
         SpinWait wait = new SpinWait();
-        while (!Monitor.TryEnter(counter))
+        do
             wait.SpinOnce();
+        while (!Monitor.TryEnter(counter));
     }
 
     /// <summary>
