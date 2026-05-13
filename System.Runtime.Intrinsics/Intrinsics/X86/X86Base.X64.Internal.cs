@@ -66,16 +66,7 @@ partial class X86Base
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static void ExitLock()
-            {
-                try
-                {
-                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-                }
-                catch (SynchronizationLockException)
-                {
-                }
-            }
+            static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
         }
 
         [DebuggerHidden]
@@ -116,16 +107,7 @@ partial class X86Base
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static void ExitLock()
-            {
-                try
-                {
-                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-                }
-                catch (SynchronizationLockException)
-                {
-                }
-            }
+            static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
         }
 
         [DebuggerHidden]
@@ -171,16 +153,7 @@ partial class X86Base
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static void ExitLock()
-            {
-                try
-                {
-                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-                }
-                catch (SynchronizationLockException)
-                {
-                }
-            }
+            static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
         }
 
         [DebuggerHidden]
@@ -226,16 +199,7 @@ partial class X86Base
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static void ExitLock()
-            {
-                try
-                {
-                    CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-                }
-                catch (SynchronizationLockException)
-                {
-                }
-            }
+            static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
         }
 
         [DebuggerHidden]

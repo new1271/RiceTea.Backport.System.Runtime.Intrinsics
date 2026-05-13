@@ -82,16 +82,7 @@ partial class Lzcnt
         [DebuggerHidden]
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static unsafe void ExitLock()
-        {
-            try
-            {
-                CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-            }
-            catch (SynchronizationLockException)
-            {
-            }
-        }
+        static unsafe void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
     }
 
 #if NETSTANDARD2_0

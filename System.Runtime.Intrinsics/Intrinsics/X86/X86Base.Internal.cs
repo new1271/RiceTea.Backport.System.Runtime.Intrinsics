@@ -100,16 +100,7 @@ unsafe partial class X86Base
         [DebuggerHidden]
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock()
-        {
-            try
-            {
-                CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-            }
-            catch (SynchronizationLockException)
-            {
-            }
-        }
+        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
     }
 
     [DebuggerHidden]
@@ -156,16 +147,7 @@ unsafe partial class X86Base
         [DebuggerHidden]
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock()
-        {
-            try
-            {
-                CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-            }
-            catch (SynchronizationLockException)
-            {
-            }
-        }
+        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
     }
 
     [DebuggerHidden]
@@ -211,16 +193,7 @@ unsafe partial class X86Base
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock()
-        {
-            try
-            {
-                CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-            }
-            catch (SynchronizationLockException)
-            {
-            }
-        }
+        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
     }
 
     [DebuggerHidden]
@@ -266,16 +239,7 @@ unsafe partial class X86Base
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock()
-        {
-            try
-            {
-                CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-            }
-            catch (SynchronizationLockException)
-            {
-            }
-        }
+        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -362,16 +326,7 @@ unsafe partial class X86Base
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock()
-        {
-            try
-            {
-                CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
-            }
-            catch (SynchronizationLockException)
-            {
-            }
-        }
+        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4, Size = sizeof(int) * 4)]
