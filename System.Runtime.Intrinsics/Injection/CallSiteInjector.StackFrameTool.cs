@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 using InlineIL;
@@ -191,7 +192,10 @@ unsafe partial class CallSiteInjector
 
                 IL.Emit.Ldtoken(new MethodRef(typeof(StackFrameTool), nameof(TryGetNativeFrame)));
                 IL.Pop(out RuntimeMethodHandle selfMethodHandle);
-                skipFrames += CalculateExtraSkipFrames(stackFrameHelper, selfMethodHandle, in rgMethodHandleRef, iNumOfFrames) + 1; // self frame
+                if (!TryCalculateExtraSkipFrames(selfMethodHandle, in rgMethodHandleRef, iNumOfFrames, out int extraSkipFrames))
+                    goto Failed;
+
+                skipFrames += extraSkipFrames + 1; // self frame
 
                 if (
                     (iNumOfFrames - skipFrames) <= 0 ||
@@ -243,24 +247,74 @@ unsafe partial class CallSiteInjector
             return true;
         }
 
-        private static int CalculateExtraSkipFrames(object stackFrameHelper, RuntimeMethodHandle archorHandle, ref readonly IntPtr rgMethodHandleRef, int frameCount)
+        private static bool TryCalculateExtraSkipFrames(RuntimeMethodHandle archorHandle,
+            ref readonly IntPtr rgMethodHandleRef, int frameCount, out int skipFrames)
         {
-            void* archorAddress = null;
+            IntPtr internalArchorHandle = archorHandle.Value;
+
             int i = 0;
-            for (; i < frameCount; i++)
+            for (int limit = frameCount - 4; i < limit; i += 4)
             {
-                IntPtr handle = UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, i);
-                if (TryGetHandle(stackFrameHelper, handle, out RuntimeMethodHandle methodHandle))
+                // int way0 = i;
+                if (UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, i) == internalArchorHandle)
                 {
-                    if (archorHandle == methodHandle)
-                        break;
-                    if (archorAddress is null)
-                        archorAddress = FindRealEntryPoint(archorHandle);
-                    if (archorAddress == FindRealEntryPoint(methodHandle))
-                        break;
+                    skipFrames = i;
+                    return true;
+                }
+                int way1 = i + 1;
+                if (UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, way1) == internalArchorHandle)
+                {
+                    skipFrames = way1;
+                    return true;
+                }
+                int way2 = i + 2;
+                if (UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, way2) == internalArchorHandle)
+                {
+                    skipFrames = way2;
+                    return true;
+                }
+                int way3 = i + 3;
+                if (UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, way3) == internalArchorHandle)
+                {
+                    skipFrames = way3;
+                    return true;
                 }
             }
-            return i;
+            if (i >= frameCount)
+                goto Failed;
+            switch (frameCount - i)
+            {
+                case 3:
+                    int way3 = frameCount - 3;
+                    if (UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, way3) == internalArchorHandle)
+                    {
+                        skipFrames = way3;
+                        return true;
+                    }
+                    goto case 2;
+                case 2:
+                    int way2 = frameCount - 2;
+                    if (UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, way2) == internalArchorHandle)
+                    {
+                        skipFrames = way2;
+                        return true;
+                    }
+                    goto case 1;
+                case 1:
+                    int way1 = frameCount - 1;
+                    if (UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, way1) == internalArchorHandle)
+                    {
+                        skipFrames = way1;
+                        return true;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+        Failed:
+            skipFrames = 0;
+            return false;
         }
 
         private static class FastStackFrameHelperGetter

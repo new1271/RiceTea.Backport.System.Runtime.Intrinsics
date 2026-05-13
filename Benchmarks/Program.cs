@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.Intrinsics.X86;
 
 using BenchmarkDotNet.Running;
