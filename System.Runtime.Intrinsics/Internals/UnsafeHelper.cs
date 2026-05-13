@@ -51,6 +51,28 @@ internal static unsafe class UnsafeHelper
     }
 
     [Inline(InlineBehavior.Remove)]
+    public static ref T AddTypedOffset<T>(ref readonly T source, nint offset)
+    {
+        IL.PushInRef(in source);
+        IL.Push(offset);
+        IL.Emit.Sizeof<T>();
+        IL.Emit.Mul();
+        IL.Emit.Add();
+        return ref IL.ReturnRef<T>();
+    }
+
+    [Inline(InlineBehavior.Remove)]
+    public static ref T AddTypedOffset<T>(ref readonly T source, nuint offset)
+    {
+        IL.PushInRef(in source);
+        IL.Push(offset);
+        IL.Emit.Sizeof<T>();
+        IL.Emit.Mul();
+        IL.Emit.Add();
+        return ref IL.ReturnRef<T>();
+    }
+
+    [Inline(InlineBehavior.Remove)]
     public static ref TTo As<TFrom, TTo>(ref TFrom source)
     {
         IL.Emit.Ldarg_0();

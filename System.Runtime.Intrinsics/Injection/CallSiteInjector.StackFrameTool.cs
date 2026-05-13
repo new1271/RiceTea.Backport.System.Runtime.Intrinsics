@@ -6,6 +6,8 @@ using System.Threading;
 
 using InlineIL;
 
+using RiceTea.Backport.Internals;
+
 namespace RiceTea.Backport.Injection;
 
 unsafe partial class CallSiteInjector
@@ -182,19 +184,23 @@ unsafe partial class CallSiteInjector
                 getterDelegate.Invoke(stackFrameHelper, out IntPtr[] rgMethodHandle, out int[] rgiOffset);
 
                 int iNumOfFrames = rgMethodHandle.Length;
+                if (iNumOfFrames != rgiOffset.Length)
+                    goto Failed;
+
+                ref readonly IntPtr rgMethodHandleRef = ref UnsafeHelper.GetReference(rgMethodHandle);
 
                 IL.Emit.Ldtoken(new MethodRef(typeof(StackFrameTool), nameof(TryGetNativeFrame)));
                 IL.Pop(out RuntimeMethodHandle selfMethodHandle);
-                skipFrames += CalculateExtraSkipFrames(stackFrameHelper, rgMethodHandle, selfMethodHandle) + 1; // self frame
+                skipFrames += CalculateExtraSkipFrames(stackFrameHelper, selfMethodHandle, in rgMethodHandleRef, iNumOfFrames) + 1; // self frame
 
                 if (
                     (iNumOfFrames - skipFrames) <= 0 ||
                     // StackTrace.CalculateFramesToSkip(StackFrameHelper, int) is too slow and creates lots of temporary RuntimeMethodInfo, we use a faster way to get same output
-                    !TryGetHandle(stackFrameHelper, rgMethodHandle[skipFrames], out methodHandle)
+                    !TryGetHandle(stackFrameHelper, UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, skipFrames), out methodHandle)
                     )
                     goto Failed;
 
-                offset = rgiOffset[skipFrames];
+                offset = UnsafeHelper.AddTypedOffset(in UnsafeHelper.GetReference(rgiOffset), skipFrames);
             }
             catch (Exception)
             {
@@ -237,13 +243,14 @@ unsafe partial class CallSiteInjector
             return true;
         }
 
-        private static int CalculateExtraSkipFrames(object stackFrameHelper, IntPtr[] rgMethodHandle, RuntimeMethodHandle archorHandle)
+        private static int CalculateExtraSkipFrames(object stackFrameHelper, RuntimeMethodHandle archorHandle, ref readonly IntPtr rgMethodHandleRef, int frameCount)
         {
             void* archorAddress = null;
             int i = 0;
-            foreach (IntPtr handle in rgMethodHandle)
+            for (; i < frameCount; i++)
             {
-                if (TryGetHandle(stackFrameHelper, rgMethodHandle[i], out RuntimeMethodHandle methodHandle))
+                IntPtr handle = UnsafeHelper.AddTypedOffset(in rgMethodHandleRef, i);
+                if (TryGetHandle(stackFrameHelper, handle, out RuntimeMethodHandle methodHandle))
                 {
                     if (archorHandle == methodHandle)
                         break;
@@ -252,7 +259,6 @@ unsafe partial class CallSiteInjector
                     if (archorAddress == FindRealEntryPoint(methodHandle))
                         break;
                 }
-                i++;
             }
             return i;
         }
@@ -277,22 +283,20 @@ unsafe partial class CallSiteInjector
 
                 DynamicMethod stackFrameHelperGetter = new DynamicMethod(
                     name: "StackFrameHelperGetter",
+                    attributes: MethodAttributes.Static | MethodAttributes.Public,
+                    callingConvention: CallingConventions.Standard,
                     returnType: typeof(void),
-                    parameterTypes: new Type[] { typeof(object), typeof(IntPtr[]).MakeByRefType(), typeof(int[]).MakeByRefType() },
+                    parameterTypes: [typeof(object), typeof(IntPtr[]).MakeByRefType(), typeof(int[]).MakeByRefType()],
                     owner: type,
                     skipVisibility: true);
 
                 ILGenerator generator = stackFrameHelperGetter.GetILGenerator();
-                generator.DeclareLocal(type);
-                generator.Emit(OpCodes.Ldarg_0);
-                generator.Emit(OpCodes.Castclass, type);
-                generator.Emit(OpCodes.Stloc_0);
                 generator.Emit(OpCodes.Ldarg_1);
-                generator.Emit(OpCodes.Ldloc_0);
+                generator.Emit(OpCodes.Ldarg_0);
                 generator.Emit(OpCodes.Ldfld, rgMethodHandleField);
                 generator.Emit(OpCodes.Stind_Ref);
                 generator.Emit(OpCodes.Ldarg_2);
-                generator.Emit(OpCodes.Ldloc_0);
+                generator.Emit(OpCodes.Ldarg_0);
                 generator.Emit(OpCodes.Ldfld, rgiOffsetField);
                 generator.Emit(OpCodes.Stind_Ref);
                 generator.Emit(OpCodes.Ret);
