@@ -16,7 +16,7 @@ unsafe partial class CallSiteInjector
      */
     private static class StackFrameTool
     {
-        private delegate void StackFrameFieldsGetter(object instance, out IntPtr[] methodHandles, out int[] offsets);
+        private delegate void StackFrameFieldsGetter(object instance, out IntPtr[] rgMethodHandle, out int[] rgiOffset);
 
         private static readonly Type? _type, _type2;
         private static readonly void* _initializeSourceInfoFunc_Long, _initializeSourceInfoFunc_Short,
@@ -28,7 +28,7 @@ unsafe partial class CallSiteInjector
             Type? type, type2;
             ConstructorInfo? runtimeHandleConstructor, constructor, constructor2, constructor3;
             MethodInfo? initializeSourceInfoMethod;
-            StackFrameFieldsGetter stackFrameHelperGetterDelegate;
+            StackFrameFieldsGetter? stackFrameHelperGetterDelegate;
             bool isLongConstructor, isLongSourceInfoMethod;
 
             try
@@ -83,37 +83,20 @@ unsafe partial class CallSiteInjector
                 {
                     isLongSourceInfoMethod = false;
                 }
-                FieldInfo? rgMethodHandleField = type.GetField("rgMethodHandle", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (rgMethodHandleField is null || rgMethodHandleField.FieldType != typeof(IntPtr[]))
+#if NETSTANDARD2_0
+                try
+                {
+                    stackFrameHelperGetterDelegate = FastStackFrameHelperGetter.Delegate;
+                }
+                catch (Exception)
+                {
+                    stackFrameHelperGetterDelegate = SlowStackFrameHelperGetter.Delegate;
+                }
+#else
+                stackFrameHelperGetterDelegate = FastStackFrameHelperGetter.Delegate;   
+#endif
+                if (stackFrameHelperGetterDelegate is null)
                     return;
-
-                FieldInfo? rgiOffsetField = type.GetField("rgiOffset", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (rgiOffsetField is null || rgiOffsetField.FieldType != typeof(int[]))
-                    return;
-
-                DynamicMethod stackFrameHelperGetter = new DynamicMethod(
-                    name: "StackFrameHelperGetter", 
-                    returnType: typeof(void), 
-                    parameterTypes: new Type[] { typeof(object), typeof(IntPtr[]).MakeByRefType(), typeof(int[]).MakeByRefType() }, 
-                    owner: type, 
-                    skipVisibility: true);
-
-                ILGenerator generator = stackFrameHelperGetter.GetILGenerator();
-                generator.DeclareLocal(type);
-                generator.Emit(OpCodes.Ldarg_0);
-                generator.Emit(OpCodes.Castclass, type);
-                generator.Emit(OpCodes.Stloc_0);
-                generator.Emit(OpCodes.Ldarg_1);
-                generator.Emit(OpCodes.Ldloc_0);
-                generator.Emit(OpCodes.Ldfld, rgMethodHandleField);
-                generator.Emit(OpCodes.Stind_Ref);
-                generator.Emit(OpCodes.Ldarg_2);
-                generator.Emit(OpCodes.Ldloc_0);
-                generator.Emit(OpCodes.Ldfld, rgiOffsetField);
-                generator.Emit(OpCodes.Stind_Ref);
-                generator.Emit(OpCodes.Ret);
-
-                stackFrameHelperGetterDelegate = (StackFrameFieldsGetter)stackFrameHelperGetter.CreateDelegate(typeof(StackFrameFieldsGetter));
             }
             catch (Exception)
             {
@@ -273,5 +256,80 @@ unsafe partial class CallSiteInjector
             }
             return i;
         }
+
+        private static class FastStackFrameHelperGetter
+        {
+            public static readonly StackFrameFieldsGetter? Delegate;
+
+            static FastStackFrameHelperGetter()
+            {
+                Type? type = Type.GetType("System.Diagnostics.StackFrameHelper");
+                if (type is null)
+                    return;
+
+                FieldInfo? rgMethodHandleField = type.GetField("rgMethodHandle", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (rgMethodHandleField is null || rgMethodHandleField.FieldType != typeof(IntPtr[]))
+                    return;
+
+                FieldInfo? rgiOffsetField = type.GetField("rgiOffset", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (rgiOffsetField is null || rgiOffsetField.FieldType != typeof(int[]))
+                    return;
+
+                DynamicMethod stackFrameHelperGetter = new DynamicMethod(
+                    name: "StackFrameHelperGetter",
+                    returnType: typeof(void),
+                    parameterTypes: new Type[] { typeof(object), typeof(IntPtr[]).MakeByRefType(), typeof(int[]).MakeByRefType() },
+                    owner: type,
+                    skipVisibility: true);
+
+                ILGenerator generator = stackFrameHelperGetter.GetILGenerator();
+                generator.DeclareLocal(type);
+                generator.Emit(OpCodes.Ldarg_0);
+                generator.Emit(OpCodes.Castclass, type);
+                generator.Emit(OpCodes.Stloc_0);
+                generator.Emit(OpCodes.Ldarg_1);
+                generator.Emit(OpCodes.Ldloc_0);
+                generator.Emit(OpCodes.Ldfld, rgMethodHandleField);
+                generator.Emit(OpCodes.Stind_Ref);
+                generator.Emit(OpCodes.Ldarg_2);
+                generator.Emit(OpCodes.Ldloc_0);
+                generator.Emit(OpCodes.Ldfld, rgiOffsetField);
+                generator.Emit(OpCodes.Stind_Ref);
+                generator.Emit(OpCodes.Ret);
+
+                Delegate = (StackFrameFieldsGetter)stackFrameHelperGetter.CreateDelegate(typeof(StackFrameFieldsGetter));
+            }
+        }
+
+#if NETSTANDARD2_0
+        private static class SlowStackFrameHelperGetter
+        {
+            private static readonly FieldInfo? _rgMethodHandleField, _rgiOffsetField;
+            public static readonly StackFrameFieldsGetter? Delegate;
+
+            static SlowStackFrameHelperGetter()
+            {
+                Type? type = Type.GetType("System.Diagnostics.StackFrameHelper");
+                if (type is null)
+                    return;
+
+                FieldInfo? rgMethodHandleField = type.GetField("rgMethodHandle", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (rgMethodHandleField is null || rgMethodHandleField.FieldType != typeof(IntPtr[]))
+                    return;
+
+                FieldInfo? rgiOffsetField = type.GetField("rgiOffset", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (rgiOffsetField is null || rgiOffsetField.FieldType != typeof(int[]))
+                    return;
+
+                _rgMethodHandleField = rgMethodHandleField;
+                _rgiOffsetField = rgiOffsetField;
+                Delegate = static (instance, out rgMethodHandle, out rgiOffset) =>
+                {
+                    rgMethodHandle = (IntPtr[])_rgMethodHandleField!.GetValue(instance)!;
+                    rgiOffset = (int[])_rgiOffsetField!.GetValue(instance)!;
+                };
+            }
+        }
+#endif
     }
 }

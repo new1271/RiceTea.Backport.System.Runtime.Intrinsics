@@ -41,7 +41,7 @@ public static unsafe partial class NativeFunctionLoader
     /// <param name="length">The length of <paramref name="source"/>.</param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static NativeFunctionHolder LoadIntoMemoryUnsafe(byte[] source, uint length) 
+    public static NativeFunctionHolder LoadIntoMemoryUnsafe(byte[] source, uint length)
         => LoadIntoMemoryUnsafe(in UnsafeHelper.GetReference(source), length);
 
     /// <summary>
@@ -85,7 +85,7 @@ public static unsafe partial class NativeFunctionLoader
         {
             destination = GetValidStartAddress(length);
             MemoryHelper.LetMemoryPageCanRW(destination, length);
-            UnsafeHelper.CopyBlock(destination, source, length); 
+            UnsafeHelper.CopyBlock(destination, source, length);
             MemoryHelper.LetMemoryPageCanRX(destination, length);
             MemoryHelper.FlushInstructionCache(destination, length);
         }
@@ -184,7 +184,12 @@ public static unsafe partial class NativeFunctionLoader
     internal static void EnterReaderLock()
     {
         AtomicHelper.Increment(ref _readerCounter);
-        SpinWait.SpinUntil(static () => (nuint)Volatile.Read(ref _writerFlag) == 0u);
+        if (Volatile.Read(ref _writerFlag) == default)
+            return;
+        SpinWait waiter = new SpinWait();
+        do
+            waiter.SpinOnce();
+        while (Volatile.Read(ref _writerFlag) != default);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -192,7 +197,12 @@ public static unsafe partial class NativeFunctionLoader
     {
         Monitor.Enter(_syncLock);
         Volatile.Write(ref _writerFlag, unchecked((nuint)(-1)));
-        SpinWait.SpinUntil(static () => Volatile.Read(ref _readerCounter) == default);
+        if (Volatile.Read(ref _readerCounter) == default)
+            return;
+        SpinWait waiter = new SpinWait();
+        do
+            waiter.SpinOnce();
+        while (Volatile.Read(ref _readerCounter) != default);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

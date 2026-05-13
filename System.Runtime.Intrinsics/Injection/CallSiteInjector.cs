@@ -42,8 +42,34 @@ public static unsafe partial class CallSiteInjector
     private static readonly bool _isRWXSupported = PlatformHelper.IsRWXSupported;
 
     // real static fields
-    private static readonly ConcurrentDictionary<nuint, StrongBox<nuint>> _addressLockDict = new();
+    private static readonly ConcurrentDictionary<nuint, ThreadAssociatedLock> _addressLockDict = new();
     private static IntPtr _lastPriorityInstructionHandler;
+
+    [ThreadStatic]
+    private static ThreadAssociatedLock? _currentAddressLock;
+
+    private sealed class ThreadAssociatedLock
+    {
+        private readonly Thread _thread;
+
+        private bool _flag;
+
+        public bool IsCurrentThreadAssociated => Thread.CurrentThread == _thread;
+
+        public bool IsUnlocked
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Volatile.Read(ref _flag);
+        }
+
+        public ThreadAssociatedLock()
+        {
+            _thread = Thread.CurrentThread;
+            _flag = false;
+        }
+
+        public void Unlock() => Volatile.Write(ref _flag, true);
+    }
 
     /// <summary>
     /// Inject machine code into specific memory area.
@@ -142,14 +168,22 @@ public static unsafe partial class CallSiteInjector
     {
         if (address is null)
             return;
-        StrongBox<nuint> counter = _addressLockDict.GetOrAdd((nuint)address, static _ => new StrongBox<nuint>(value: 0));
-        AtomicHelper.Increment(ref counter.Value);
-        if (Monitor.TryEnter(counter))
+
+        if (_currentAddressLock is not null)
+            throw new InvalidOperationException("Nested address lock is not allowed.");
+
+        ThreadAssociatedLock locker = _addressLockDict.GetOrAdd((nuint)address, static _ => new ThreadAssociatedLock());
+        if (locker.IsCurrentThreadAssociated)
+        {
+            _currentAddressLock = locker;
+            return;
+        }
+        if (locker.IsUnlocked)
             return;
         SpinWait wait = new SpinWait();
         do
             wait.SpinOnce();
-        while (!Monitor.TryEnter(counter));
+        while (!locker.IsUnlocked);
     }
 
     /// <summary>
@@ -160,19 +194,17 @@ public static unsafe partial class CallSiteInjector
     /// </remarks>
     public static void LeaveAddressLock(void* address)
     {
-        if (address is null)
+        ThreadAssociatedLock? locker;
+        if (address is null || (locker = _currentAddressLock) is null)
             return;
-        StrongBox<nuint> counter = _addressLockDict.GetOrAdd((nuint)address, static _ => new StrongBox<nuint>(value: 0));
-        Monitor.Exit(counter);
-        if (AtomicHelper.Decrement(ref counter.Value) == 0)
-        {
-            KeyValuePair<nuint, StrongBox<nuint>> pair = new((nuint)address, counter);
+        _currentAddressLock = null;
+        locker.Unlock();
+        KeyValuePair<nuint, ThreadAssociatedLock> pair = new((nuint)address, locker);
 #if NET5_0_OR_GREATER
-            _addressLockDict.TryRemove(pair);
+        _addressLockDict.TryRemove(pair);
 #else
-            ((ICollection<KeyValuePair<nuint, StrongBox<nuint>>>)_addressLockDict).Remove(pair);
+        ((ICollection<KeyValuePair<nuint, ThreadAssociatedLock>>)_addressLockDict).Remove(pair);
 #endif
-        }
     }
 
     private static void* FindRealEntryPoint(RuntimeMethodHandle handle)
