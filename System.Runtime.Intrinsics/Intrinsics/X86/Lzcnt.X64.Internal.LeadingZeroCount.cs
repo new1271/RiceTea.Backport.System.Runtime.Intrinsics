@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
+using SpanDissolve;
+
 namespace System.Runtime.Intrinsics.X86;
 
 partial class Lzcnt
@@ -31,14 +33,7 @@ partial class Lzcnt
                 ThrowUtils.ThrowAccessViolation();
             destination = (byte*)destination + length - Length;
             length = Length;
-#if NETSTANDARD2_0
-            if (!_spanExists)
-            {
-                UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetLzcntDataReference_Windows(), Length);
-                return;
-            }
-#endif
-            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetLzcntDataReference_Windows(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in Store.LzcntData_Windows, Length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -49,56 +44,19 @@ partial class Lzcnt
                 ThrowUtils.ThrowAccessViolation();
             destination = (byte*)destination + length - Length;
             length = Length;
-#if NETSTANDARD2_0
-            if (!_spanExists)
-            {
-                UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetLzcntDataReference_Unix(), Length);
-                return;
-            }
-#endif
-            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetLzcntDataReference_Unix(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in Store.LzcntData_Unix, Length);
         }
 
-#if NETSTANDARD2_0
-        partial class StoreAsArray
+        partial class Store
         {
-            private static readonly byte[] LzcntData_Windows = new byte[LzcntLength_Windows]
+            public static ref readonly byte LzcntData_Windows => ref SpanDissolver.Dissolve(new byte[LzcntLength_Windows]
             {
                 0xF3, 0x48, 0x0F, 0xBD, 0xC1 // lzcnt rax rcx
-            };
-            private static readonly byte[] LzcntData_Unix = new byte[LzcntLength_Unix]
+            });
+            public static ref readonly byte LzcntData_Unix => ref SpanDissolver.Dissolve(new byte[LzcntLength_Unix]
             {
                 0xF3, 0x48, 0x0F, 0xBD, 0xC7 // lzcnt rax, rdi
-            };
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static ref readonly byte GetLzcntDataReference_Windows()
-                => ref UnsafeHelper.GetReference(LzcntData_Windows);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static ref readonly byte GetLzcntDataReference_Unix()
-                => ref UnsafeHelper.GetReference(LzcntData_Unix);
-        }
-#endif
-
-        partial class StoreAsSpan
-        {
-            private static ReadOnlySpan<byte> LzcntData_Windows => new byte[LzcntLength_Windows]
-            {
-                0xF3, 0x48, 0x0F, 0xBD, 0xC1 // lzcnt rax rcx
-            };
-            private static ReadOnlySpan<byte> LzcntData_Unix => new byte[LzcntLength_Unix]
-            {
-                0xF3, 0x48, 0x0F, 0xBD, 0xC7 // lzcnt rax, rdi
-            };
-
-            [MethodImpl(Constants.SpanSourceInliningOptions)]
-            public static ref readonly byte GetLzcntDataReference_Windows()
-                => ref UnsafeHelper.GetReference(LzcntData_Windows);
-
-            [MethodImpl(Constants.SpanSourceInliningOptions)]
-            public static ref readonly byte GetLzcntDataReference_Unix()
-                => ref UnsafeHelper.GetReference(LzcntData_Unix);
+            });
         }
     }
 }

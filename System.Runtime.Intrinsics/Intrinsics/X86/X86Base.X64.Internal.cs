@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 using RiceTea.Backport.Injection;
 using RiceTea.Backport.Internals;
@@ -18,9 +17,6 @@ partial class X86Base
     {
         private static readonly bool _isSupported = PlatformHelper.IsX64;
         private static readonly bool _isUnix = PlatformHelper.IsUnix;
-#if NETSTANDARD2_0
-        private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
-#endif
 
         public static partial bool IsSupported
         {
@@ -220,11 +216,7 @@ partial class X86Base
             return (quotient, remainder);
         }
 
-#if NETSTANDARD2_0
-        private static partial class StoreAsArray { }
-#endif
-
-        private static partial class StoreAsSpan { }
+        private static partial class Store { }
     }
 }
 #endif

@@ -19,9 +19,6 @@ partial class Bmi1
 #if ANYCPU
     private static readonly bool _isX64 = PlatformHelper.IsX64;
 #endif
-#if NETSTANDARD2_0
-    private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
-#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CheckIsSupported()
@@ -85,11 +82,7 @@ partial class Bmi1
         static unsafe void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
     }
 
-#if NETSTANDARD2_0
-    private static partial class StoreAsArray { }
-#endif
-
-    private static partial class StoreAsSpan { }
+    private static partial class Store { }
 }
 #endif
 #endif

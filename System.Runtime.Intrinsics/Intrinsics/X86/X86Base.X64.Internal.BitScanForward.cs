@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
+using SpanDissolve;
+
 namespace System.Runtime.Intrinsics.X86;
 
 partial class X86Base
@@ -31,14 +33,7 @@ partial class X86Base
                 ThrowUtils.ThrowAccessViolation();
             destination = (byte*)destination + length - Length;
             length = Length;
-#if NETSTANDARD2_0
-            if (!_spanExists)
-            {
-                UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetBsfDataReference_Windows(), Length);
-                return;
-            }
-#endif
-            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetBsfDataReference_Windows(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in Store.BsfData_Windows, Length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -49,56 +44,19 @@ partial class X86Base
                 ThrowUtils.ThrowAccessViolation();
             destination = (byte*)destination + length - Length;
             length = Length;
-#if NETSTANDARD2_0
-            if (!_spanExists)
-            {
-                UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetBsfDataReference_Unix(), Length);
-                return;
-            }
-#endif
-            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetBsfDataReference_Unix(), Length);
+            UnsafeHelper.CopyBlockUnaligned(destination, in Store.BsfData_Unix, Length);
         }
 
-#if NETSTANDARD2_0
-        partial class StoreAsArray
-        {
-            private static readonly byte[] BsfData_Windows = new byte[BsfLength_Windows]
-			{
-                0x48, 0x0F, 0xBC, 0xC1 // bsf rax, rcx
-			};
-            private static readonly byte[] BsfData_Unix = new byte[BsfLength_Unix]
-            {
-                0x48, 0x0F, 0xBC, 0xC7 // bsf rax, rdi
-            };
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static ref readonly byte GetBsfDataReference_Windows()
-                => ref UnsafeHelper.GetReference(BsfData_Windows);
-
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static ref readonly byte GetBsfDataReference_Unix()
-                => ref UnsafeHelper.GetReference(BsfData_Unix);
-        }
-#endif
-
-        partial class StoreAsSpan
+        partial class Store
 		{
-            private static ReadOnlySpan<byte> BsfData_Windows => new byte[BsfLength_Windows]
+            public static ref readonly byte BsfData_Windows => ref SpanDissolver.Dissolve(new byte[BsfLength_Windows]
             {
                 0x48, 0x0F, 0xBC, 0xC1 // bsf rax, rcx
-            };
-            private static ReadOnlySpan<byte> BsfData_Unix => new byte[BsfLength_Unix]
+            });
+            public static ref readonly byte BsfData_Unix => ref SpanDissolver.Dissolve(new byte[BsfLength_Unix]
             {
                 0x48, 0x0F, 0xBC, 0xC7 // bsf rax, rdi
-            };
-
-            [MethodImpl(Constants.SpanSourceInliningOptions)]
-            public static ref readonly byte GetBsfDataReference_Windows()
-                => ref UnsafeHelper.GetReference(BsfData_Windows);
-
-            [MethodImpl(Constants.SpanSourceInliningOptions)]
-            public static ref readonly byte GetBsfDataReference_Unix()
-                => ref UnsafeHelper.GetReference(BsfData_Unix);
+            });
         }
 	}
 }

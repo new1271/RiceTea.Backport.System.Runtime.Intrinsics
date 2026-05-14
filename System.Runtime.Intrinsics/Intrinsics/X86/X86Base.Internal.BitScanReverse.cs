@@ -1,10 +1,11 @@
-
 #if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_0
 #if X86_ARCH || ANYCPU
 
 using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
+
+using SpanDissolve;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -46,14 +47,7 @@ unsafe partial class X86Base
             ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
-#if NETSTANDARD2_0
-        if (!_spanExists)
-        {
-            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetBsrDataReference_Windows(), Length);
-            return;
-        }
-#endif
-        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetBsrDataReference_Windows(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in Store.BsrData_Windows, Length);
     }
 
 #if B32_ARCH || ANYCPU
@@ -65,14 +59,7 @@ unsafe partial class X86Base
             ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
-#if NETSTANDARD2_0
-        if (!_spanExists)
-        {
-            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetBsrDataReference_Unix_X86(), Length);
-            return;
-        }
-#endif
-        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetBsrDataReference_Unix_X86(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in Store.BsrData_Unix_X86, Length);
     }
 #endif
 
@@ -85,88 +72,27 @@ unsafe partial class X86Base
             ThrowUtils.ThrowAccessViolation();
         destination = (byte*)destination + length - Length;
         length = Length;
-#if NETSTANDARD2_0
-        if (!_spanExists)
-        {
-            UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsArray.GetBsrDataReference_Unix_X64(), Length);
-            return;
-        }
-#endif
-        UnsafeHelper.CopyBlockUnaligned(destination, in StoreAsSpan.GetBsrDataReference_Unix_X64(), Length);
+        UnsafeHelper.CopyBlockUnaligned(destination, in Store.BsrData_Unix_X64, Length);
     }
 #endif
 
-#if NETSTANDARD2_0
-    partial class StoreAsArray
+    partial class Store
     {
-        private static readonly byte[] BsrData_Windows = new byte[BsrLength_Windows]
+        public static ref readonly byte BsrData_Windows => ref SpanDissolver.Dissolve(new byte[BsrLength_Windows]
         {
             0x0F, 0xBD, 0xC1 // bsr eax, ecx
-        };
+        });
 #if B32_ARCH || ANYCPU
-        private static readonly byte[] BsrData_Unix_X86 = new byte[BsrLength_Unix_X86]
+        public static ref readonly byte BsrData_Unix_X86 => ref SpanDissolver.Dissolve(new byte[BsrLength_Unix_X86]
         {
             0x0F, 0xBD, 0x44, 0x24, 0x04 // bsr eax, dword ptr [esp+4]
-        };
+        });
 #endif
 #if B64_ARCH || ANYCPU
-        private static readonly byte[] BsrData_Unix_X64 = new byte[BsrLength_Unix_X64]
+        public static ref readonly byte BsrData_Unix_X64 => ref SpanDissolver.Dissolve(new byte[BsrLength_Unix_X64]
         {
             0x0F, 0xBD, 0xC7 // bsr eax, edi
-        };
-#endif
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref readonly byte GetBsrDataReference_Windows()
-            => ref UnsafeHelper.GetReference(BsrData_Windows);
-
-#if B32_ARCH || ANYCPU
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref readonly byte GetBsrDataReference_Unix_X86()
-            => ref UnsafeHelper.GetReference(BsrData_Unix_X86);
-#endif
-
-#if B64_ARCH || ANYCPU
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ref readonly byte GetBsrDataReference_Unix_X64()
-            => ref UnsafeHelper.GetReference(BsrData_Unix_X64);
-#endif
-    }
-#endif
-
-    partial class StoreAsSpan
-    {
-        private static ReadOnlySpan<byte> BsrData_Windows => new byte[BsrLength_Windows]
-        {
-            0x0F, 0xBD, 0xC1 // bsr eax, ecx
-        };
-#if B32_ARCH || ANYCPU
-        private static ReadOnlySpan<byte> BsrData_Unix_X86 => new byte[BsrLength_Unix_X86]
-        {
-            0x0F, 0xBD, 0x44, 0x24, 0x04 // bsr eax, dword ptr [esp+4]
-        };
-#endif
-#if B64_ARCH || ANYCPU
-        private static ReadOnlySpan<byte> BsrData_Unix_X64 => new byte[BsrLength_Unix_X64]
-        {
-            0x0F, 0xBD, 0xC7 // bsr eax, edi
-        };
-#endif
-
-        [MethodImpl(Constants.SpanSourceInliningOptions)]
-        public static ref readonly byte GetBsrDataReference_Windows()
-            => ref UnsafeHelper.GetReference(BsrData_Windows);
-
-#if B32_ARCH || ANYCPU
-        [MethodImpl(Constants.SpanSourceInliningOptions)]
-        public static ref readonly byte GetBsrDataReference_Unix_X86()
-            => ref UnsafeHelper.GetReference(BsrData_Unix_X86);
-#endif
-
-#if B64_ARCH || ANYCPU
-        [MethodImpl(Constants.SpanSourceInliningOptions)]
-        public static ref readonly byte GetBsrDataReference_Unix_X64()
-            => ref UnsafeHelper.GetReference(BsrData_Unix_X64);
+        });
 #endif
     }
 }

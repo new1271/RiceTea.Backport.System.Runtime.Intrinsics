@@ -4,8 +4,6 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
-
 using RiceTea.Backport.Injection;
 using RiceTea.Backport.Internals;
 
@@ -19,9 +17,6 @@ partial class Bmi1
     {
         private static readonly bool _isSupported = CheckIsSupported();
         private static readonly bool _isUnix = PlatformHelper.IsUnix;
-#if NETSTANDARD2_0
-        private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
-#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool CheckIsSupported()
@@ -85,11 +80,7 @@ partial class Bmi1
             static unsafe void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
         }
 
-#if NETSTANDARD2_0
-        private static partial class StoreAsArray { }
-#endif
-
-        private static partial class StoreAsSpan { }
+        private static partial class Store { }
     }
 }
 #endif

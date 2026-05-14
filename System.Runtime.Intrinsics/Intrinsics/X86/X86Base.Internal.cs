@@ -24,9 +24,6 @@ unsafe partial class X86Base
 #if ANYCPU
     private static readonly bool _isX64 = PlatformHelper.IsX64;
 #endif
-#if NETSTANDARD2_0
-    private static readonly bool _spanExists = SoftDependencyHelper.SystemMemoryExists;
-#endif
 
     private static NativeFunctionHolder _cpuIdAsm = NativeFunctionHolder.Empty;
 
@@ -338,11 +335,7 @@ unsafe partial class X86Base
             => $"{{EAX = {_eax}, EBX = {_ebx}, ECX = {_ecx}, EDX = {_edx}}}";
     }
 
-#if NETSTANDARD2_0
-    private static partial class StoreAsArray { }
-#endif
-
-    private static partial class StoreAsSpan { }
+    private static partial class Store { }
 }
 #endif
 #endif

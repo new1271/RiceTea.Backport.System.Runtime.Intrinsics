@@ -11,9 +11,6 @@ internal static partial class Fallbacks
 #if ANYCPU
     private static readonly bool _isX64 = PlatformHelper.IsX64;
 #endif
-#if NETSTANDARD2_0
-    private static readonly bool _isSystemMemoryExists = SoftDependencyHelper.SystemMemoryExists;
-#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong TrailingZeroCount(ulong value)
@@ -35,11 +32,7 @@ internal static partial class Fallbacks
         {
             nuint index = (nuint)(long)(((value & (ulong)-(long)value) * 0x03F79D591089AB11UL) >> 58);
 
-#if NETSTANDARD2_0
-            if (!_isSystemMemoryExists)
-                return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetTrailingZeroCountTableReference_64(), index);
-#endif
-            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetTrailingZeroCountTableReference_64(), index);
+            return UnsafeHelper.AddByteOffset(in TrailingZeroCount_64, index);
         }
 #endif
 
@@ -65,11 +58,7 @@ internal static partial class Fallbacks
         nuint index = (nuint)(int)(((value & (uint)-(int)value) * 0x077CB531u) >> 27);
         // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
 
-#if NETSTANDARD2_0
-        if (!_isSystemMemoryExists)
-            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetTrailingZeroCountTableReference_32(), index);
-#endif
-        return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetTrailingZeroCountTableReference_32(), index);
+        return UnsafeHelper.AddByteOffset(in TrailingZeroCount_32, index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -100,11 +89,8 @@ internal static partial class Fallbacks
 
             nuint index = (nuint)(long)((value * 0x07C4ACDD243104D7UL) >> 58);
 
-#if NETSTANDARD2_0
-            if (!_isSystemMemoryExists)
-                return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetTrailingZeroCountTableReference_64(), index);
-#endif
-            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetTrailingZeroCountTableReference_64(), index);
+
+            return UnsafeHelper.AddByteOffset(in Log2_64, index);
         }
 #endif
 
@@ -137,11 +123,7 @@ internal static partial class Fallbacks
         nuint index = (nuint)(int)((value * 0x07C4ACDDu) >> 27);
 
         // Using deBruijn sequence, k=2, n=5 (2^5=32) : 0b_0000_0111_1100_0100_1010_1100_1101_1101u
-#if NETSTANDARD2_0
-        if (!_isSystemMemoryExists)
-            return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsArray.GetLog2TableReference_32(), index);
-#endif
-        return UnsafeHelper.AddByteOffset(in DeBruijn_StoreAsSpan.GetLog2TableReference_32(), index);
+        return UnsafeHelper.AddByteOffset(in Log2_32, index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
