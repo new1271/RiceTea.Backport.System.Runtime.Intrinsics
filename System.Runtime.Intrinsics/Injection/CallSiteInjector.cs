@@ -209,36 +209,32 @@ public static unsafe partial class CallSiteInjector
 
     private static void* FindRealEntryPoint(RuntimeMethodHandle handle)
     {
-        void* result = (void*)handle.GetFunctionPointer();
-        while (TryGetCallingAddress(result, out result)) ;
-        return result;
-    }
-
-    private static bool TryGetCallingAddress(void* ptr, out void* result)
-    {
-        switch (UnsafeHelper.ReadUnaligned<byte>(ptr))
+        void* ptr = (void*)handle.GetFunctionPointer();
+        while (true)
         {
-            case 0xE8: // CALL
-                {
-                    int offset = UnsafeHelper.ReadUnaligned<int>((byte*)ptr + 1);
-                    result = (byte*)ptr + CallInstructionSize + offset;
-                    return true;
-                }
-            case 0xE9: // JMP
-                {
-                    int offset = UnsafeHelper.ReadUnaligned<int>((byte*)ptr + 1);
-                    result = (byte*)ptr + JumpInstructionSize + offset;
-                    return true;
-                }
-            case 0xEB: // JMP short
-                {
-                    sbyte shortOffset = UnsafeHelper.ReadUnaligned<sbyte>((byte*)ptr + 1);
-                    result = (byte*)ptr + JumpShortInstructionSize + shortOffset;
-                    return true;
-                }
-            default:
-                result = ptr;
-                return false;
+            switch (UnsafeHelper.ReadUnaligned<byte>(ptr))
+            {
+                case 0xE8: // CALL
+                    {
+                        int offset = UnsafeHelper.ReadUnaligned<int>((byte*)ptr + 1);
+                        ptr = (byte*)ptr + CallInstructionSize + offset;
+                        continue;
+                    }
+                case 0xE9: // JMP
+                    {
+                        int offset = UnsafeHelper.ReadUnaligned<int>((byte*)ptr + 1);
+                        ptr = (byte*)ptr + JumpInstructionSize + offset;
+                        continue;
+                    }
+                case 0xEB: // JMP short
+                    {
+                        sbyte shortOffset = UnsafeHelper.ReadUnaligned<sbyte>((byte*)ptr + 1);
+                        ptr = (byte*)ptr + JumpShortInstructionSize + shortOffset;
+                        continue;
+                    }
+                default:
+                    return ptr;
+            }
         }
     }
 
@@ -271,20 +267,20 @@ public static unsafe partial class CallSiteInjector
 
         NotAligned:
             WriteHaltInstruction(ptr);
-            UnsafeHelper.WriteUnaligned(pOffset, offset);
-            UnsafeHelper.Write(ptr, Instruction);
+            *pOffset = offset;
+            *ptr = Instruction;
             return;
 
         Aligned_All: // whole instruction is aligned, so we use atomic write for better performance
-            nuint val = UnsafeHelper.Read<nuint>(ptr);
+            nuint val = *(nuint*)ptr;
             byte* pVal = (byte*)&val;
-            UnsafeHelper.Write(pVal, Instruction);
-            UnsafeHelper.WriteUnaligned(pVal + 1, offset); 
-            UnsafeHelper.Write(ptr, val);
+            *pVal = Instruction;
+            *(int*)(pVal + 1) = offset;
+            *(nuint*)ptr = val;
             return;
 
         Aligned_Address: // only the address is aligned (and the instruction is same)
-            UnsafeHelper.Write(ptr, offset);
+            *(int*)ptr = offset;
             return;
         }
     }
@@ -318,20 +314,20 @@ public static unsafe partial class CallSiteInjector
 
         NotAligned:
             WriteHaltInstruction(ptr);
-            UnsafeHelper.WriteUnaligned(pOffset, offset);
-            UnsafeHelper.Write(ptr, Instruction);
+            *pOffset = offset;
+            *ptr = Instruction;
             return;
 
         Aligned_All: // whole instruction is aligned, so we use atomic write for better performance
-            nuint val = UnsafeHelper.Read<nuint>(ptr);
+            nuint val = *(nuint*)ptr;
             byte* pVal = (byte*)&val;
-            UnsafeHelper.Write(pVal, Instruction);
-            UnsafeHelper.WriteUnaligned(pVal + 1, offset);
-            UnsafeHelper.Write(ptr, val);
+            *pVal = Instruction;
+            *(int*)(pVal + 1) = offset;
+            *(nuint*)ptr = val;
             return;
 
         Aligned_Address: // only the address is aligned (and the instruction is same)
-            UnsafeHelper.Write(ptr, offset);
+            *(int*)ptr = offset;
             return;
         }
     }
@@ -342,7 +338,7 @@ public static unsafe partial class CallSiteInjector
         const byte Instruction = 0xF4; // HLT (ring 0 instruction, will be handled by VEH or Signal handler)
 
         HookPriorityInstructionHandler(); // Hook ring 0 instruction handler
-        UnsafeHelper.Write(ptr, Instruction);
+        *(byte*)ptr = Instruction;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -360,35 +356,35 @@ public static unsafe partial class CallSiteInjector
             byte* castedPtr = (byte*)ptr;
             do
             {
-                UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x84_1F_0F_66); // nop_9: 66 0F 1F 84 00 00 00 00 00
+                *(uint*)castedPtr = 0x84_1F_0F_66; // nop_9: 66 0F 1F 84 00 00 00 00 00
                 castedPtr += 9;
                 length -= 9;
             } while (length >= 9);
             switch (length) // We just write the data that not zero. (need type the type in UnsafeHelper.WriteUnaligned for non-byte data)
             {
                 case 8:
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x00_84_1F_0F); // nop_8: 0F 1F 84 00 00 00 00 00
+                    *(uint*)castedPtr = 0x00_84_1F_0F; // nop_8: 0F 1F 84 00 00 00 00 00
                     break;
                 case 7:
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x00_80_1F_0F); // nop_7: 0F 1F 80 00 00 00 00
+                    *(uint*)castedPtr = 0x00_80_1F_0F; // nop_7: 0F 1F 80 00 00 00 00
                     break;
                 case 6:
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x44_1F_0F_66); // nop_6: 66 0F 1F 44 00 00
+                    *(uint*)castedPtr = 0x44_1F_0F_66; // nop_6: 66 0F 1F 44 00 00
                     break;
                 case 5:
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x00_44_1F_0F); // nop_5: 0F 1F 44 00 00
+                    *(uint*)castedPtr = 0x00_44_1F_0F; // nop_5: 0F 1F 44 00 00
                     break;
                 case 4:
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x00_40_1F_0F); // nop_4: 0F 1F 40 00
+                    *(uint*)castedPtr = 0x00_40_1F_0F; // nop_4: 0F 1F 40 00
                     break;
                 case 3:
-                    UnsafeHelper.WriteUnaligned<ushort>(castedPtr, 0x1F_0F); // nop_3: 0F 1F 00
+                    *(ushort*)castedPtr = 0x1F_0F; // nop_3: 0F 1F 00
                     break;
                 case 2:
-                    UnsafeHelper.WriteUnaligned<ushort>(castedPtr, 0x90_66); // nop_2: 66 90
+                    *(ushort*)castedPtr = 0x90_66; // nop_2: 66 90
                     break;
                 case 1:
-                    UnsafeHelper.Write<byte>(castedPtr, 0x90); // nop_1: 90
+                    *castedPtr = 0x90; // nop_1: 90
                     break;
             }
         }
@@ -400,39 +396,39 @@ public static unsafe partial class CallSiteInjector
             switch (length)
             {
                 case 9:  // nop_9: 66 0F 1F 84 00 00 00 00 00
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x84_1F_0F_66);
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr + 4, 0x00_00_00_00);
-                    UnsafeHelper.Write<byte>(castedPtr + 8, 0x00);
+                    *(uint*)castedPtr = 0x84_1F_0F_66;
+                    *(uint*)(castedPtr + 4) = 0x00_00_00_00;
+                    *(castedPtr + 8) = 0x00;
                     break;
                 case 8:  // nop_8: 0F 1F 84 00 00 00 00 00
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x00_84_1F_0F);
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr + 4, 0x00_00_00_00);
+                    *(uint*)castedPtr = 0x00_84_1F_0F;
+                    *(uint*)(castedPtr + 4) = 0x00_00_00_00;
                     break;
                 case 7: // nop_7: 0F 1F 80 00 00 00 00
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x00_80_1F_0F);
-                    UnsafeHelper.WriteUnaligned<ushort>(castedPtr + 4, 0x00_00);
-                    UnsafeHelper.Write<byte>(castedPtr + 6, 0x00);
+                    *(uint*)castedPtr = 0x00_80_1F_0F;
+                    *(ushort*)(castedPtr + 4) = 0x00_00;
+                    *(castedPtr + 6) = 0x00;
                     break;
                 case 6: // nop_6: 66 0F 1F 44 00 00
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x44_1F_0F_66);
-                    UnsafeHelper.WriteUnaligned<ushort>(castedPtr + 4, 0x00_00);
+                    *(uint*)castedPtr = 0x44_1F_0F_66;
+                    *(ushort*)(castedPtr + 4) = 0x00_00;
                     break;
                 case 5: // nop_5: 0F 1F 44 00 00
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x00_44_1F_0F);
-                    UnsafeHelper.Write<byte>(castedPtr + 4, 0x00);
+                    *(uint*)castedPtr = 0x00_44_1F_0F;
+                    *(castedPtr + 4) = 0x00;
                     break;
                 case 4: // nop_4: 0F 1F 40 00
-                    UnsafeHelper.WriteUnaligned<uint>(castedPtr, 0x00_40_1F_0F);
+                    *(uint*)castedPtr = 0x00_40_1F_0F;
                     break;
                 case 3: // nop_3: 0F 1F 00
-                    UnsafeHelper.WriteUnaligned<ushort>(castedPtr, 0x1F_0F);
-                    UnsafeHelper.Write<byte>(castedPtr + 2, 0x00);
+                    *(ushort*)castedPtr = 0x1F_0F;
+                    *(castedPtr + 2) = 0x00;
                     break;
                 case 2: // nop_2: 66 90
-                    UnsafeHelper.WriteUnaligned<ushort>(castedPtr, 0x90_66);
+                    *(ushort*)castedPtr = 0x90_66;
                     break;
                 case 1: // nop_1: 90
-                    UnsafeHelper.Write<byte>(castedPtr, 0x90);
+                    *castedPtr = 0x90;
                     break;
             }
         }
