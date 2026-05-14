@@ -10,7 +10,8 @@
 		<AssemblyTitle>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyTitle>
 		<AssemblyName>RiceTea.Backport.System.Runtime.Intrinsics</AssemblyName>
 		<AssemblyVersion>1.0.0</AssemblyVersion>
-		<Authors>RiceTea</Authors>
+		<Authors>RiceTea (new1271)</Authors>
+		<Copyright>Copyright © RiceTea (new1271) 2026</Copyright>
 		<Description>Provides APIs for accessing processor specific instructions. (backports to .NET Standard 2.0 by Rice Tea)</Description>
 		<PackageId>RiceTea.Backport.System.Runtime.Intrinsics</PackageId>
 		<PackageTags>intrinsics</PackageTags>
