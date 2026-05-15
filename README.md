@@ -1,4 +1,5 @@
 # RiceTea.Backport.System.Runtime.Intrinsics
+[![NuGet package](https://img.shields.io/nuget/v/RiceTea.Backport.System.Runtime.Intrinsics.svg?logo=NuGet)](https://www.nuget.org/packages/RiceTea.Backport.System.Runtime.Intrinsics)
 
 Provides APIs for accessing processor specific instructions. (backports to .NET Standard 2.0 by Rice Tea)<br/>
 <br/>
