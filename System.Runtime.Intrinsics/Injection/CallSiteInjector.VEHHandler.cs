@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace RiceTea.Backport.Injection;
 
@@ -58,7 +58,7 @@ partial class CallSiteInjector
             {
                 const int Length = 86;
                 return NativeFunctionLoader.LoadIntoMemoryUnsafe(
-                    in SpanDissolver.Dissolve(new byte[Length] // Original from VEHHook project in the solution
+                    in Unwrap.From(new byte[Length] // Original from VEHHook project in the solution
                 {
                     0x8B, 0x44, 0x24, 0x04, 0x8B, 0x00, 0x81, 0x38,
                     0x96, 0x00, 0x00, 0xC0, 0x74, 0x05, 0x33, 0xC0,
@@ -81,7 +81,7 @@ partial class CallSiteInjector
             {
                 const int Length = 90;
                 return NativeFunctionLoader.LoadIntoMemoryUnsafe(
-                    in SpanDissolver.Dissolve(new byte[Length] // Original from VEHHook project in the solution
+                    in Unwrap.From(new byte[Length] // Original from VEHHook project in the solution
                 {
                     0x48, 0x8B, 0x01, 0x81, 0x38, 0x96, 0x00, 0x00,
                     0xC0, 0x74, 0x03, 0x33, 0xC0, 0xC3, 0x48, 0x8B,

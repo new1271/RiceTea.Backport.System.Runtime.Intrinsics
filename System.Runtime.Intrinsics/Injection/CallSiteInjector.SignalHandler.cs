@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 using RiceTea.Backport.Internals;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace RiceTea.Backport.Injection;
 
@@ -65,7 +65,7 @@ partial class CallSiteInjector
             {
                 const int Length = 113;
                 return (Holder: NativeFunctionLoader.LoadIntoMemoryUnsafe(
-                    in SpanDissolver.Dissolve(new byte[Length] // Original from SingalHook project in the solution
+                    in Unwrap.From(new byte[Length] // Original from SingalHook project in the solution
                 {
                     0x53, 0x56, 0x50, 0xE8, 0x00, 0x00, 0x00, 0x00,
                     0x5B, 0x81, 0xC3, 0x03, 0x00, 0x00, 0x00, 0x8B,
@@ -97,7 +97,7 @@ partial class CallSiteInjector
             {
                 const int Length = 91;
                 return (Holder: NativeFunctionLoader.LoadIntoMemoryUnsafe(
-                    in SpanDissolver.Dissolve(new byte[Length] // Original from SingalHook project in the solution
+                    in Unwrap.From(new byte[Length] // Original from SingalHook project in the solution
                 {
                     0x83, 0xFF, 0x04, 0x75, 0x41, 0x83, 0x7E, 0x08,
                     0x05, 0x75, 0x3B, 0x48, 0x8B, 0x46, 0x10, 0x8A,

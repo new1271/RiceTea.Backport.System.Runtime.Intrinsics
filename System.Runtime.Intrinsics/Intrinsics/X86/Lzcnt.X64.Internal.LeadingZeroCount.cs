@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -49,11 +49,11 @@ partial class Lzcnt
 
         partial class Store
         {
-            public static ref readonly byte LzcntData_Windows => ref SpanDissolver.Dissolve(new byte[LzcntLength_Windows]
+            public static ref readonly byte LzcntData_Windows => ref Unwrap.From(new byte[LzcntLength_Windows]
             {
                 0xF3, 0x48, 0x0F, 0xBD, 0xC1 // lzcnt rax rcx
             });
-            public static ref readonly byte LzcntData_Unix => ref SpanDissolver.Dissolve(new byte[LzcntLength_Unix]
+            public static ref readonly byte LzcntData_Unix => ref Unwrap.From(new byte[LzcntLength_Unix]
             {
                 0xF3, 0x48, 0x0F, 0xBD, 0xC7 // lzcnt rax, rdi
             });

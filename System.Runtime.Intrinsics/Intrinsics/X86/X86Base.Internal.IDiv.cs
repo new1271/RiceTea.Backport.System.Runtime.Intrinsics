@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -102,14 +102,14 @@ unsafe partial class X86Base
     partial class Store
     {
 #if B32_ARCH || ANYCPU
-        public static ref readonly byte IDivData_Windows_X86 => ref SpanDissolver.Dissolve(new byte[IDivLength_Windows_X86]
+        public static ref readonly byte IDivData_Windows_X86 => ref Unwrap.From(new byte[IDivLength_Windows_X86]
         {
             0x89, 0xC8, // mov eax, ecx
             0x8B, 0x4C, 0x24, 0x04, // mov ecx, dword ptr [esp+4]
             0xF7, 0x7C, 0x24, 0x08, // idiv dword ptr [esp+8]
             0x89, 0x11 // mov dword ptr [ecx], edx
         });
-        public static ref readonly byte IDivData_Unix_X86 => ref SpanDissolver.Dissolve(new byte[IDivLength_Unix_X86]
+        public static ref readonly byte IDivData_Unix_X86 => ref Unwrap.From(new byte[IDivLength_Unix_X86]
         {
             0x8B, 0x44, 0x24, 0x04, // mov eax, dword ptr [esp+4]
             0x8B, 0x54, 0x24, 0x08, // mov edx, dword ptr [esp+8]
@@ -119,13 +119,13 @@ unsafe partial class X86Base
         });
 #endif
 #if B64_ARCH || ANYCPU
-        public static ref readonly byte IDivData_Windows_X64 => ref SpanDissolver.Dissolve(new byte[IDivLength_Windows_X64]
+        public static ref readonly byte IDivData_Windows_X64 => ref Unwrap.From(new byte[IDivLength_Windows_X64]
         {
             0x89, 0xC8, // mov eax, ecx
             0x41, 0xF7, 0xF8, // idiv r8d
             0x41, 0x89, 0x11 // mov dword ptr [r9], edx
         });
-        public static ref readonly byte IDivData_Unix_X64 => ref SpanDissolver.Dissolve(new byte[IDivLength_Unix_X64]
+        public static ref readonly byte IDivData_Unix_X64 => ref Unwrap.From(new byte[IDivLength_Unix_X64]
         {
             0x89, 0xF8, // mov eax, edi
             0x89, 0xD7, // mov edi, edx

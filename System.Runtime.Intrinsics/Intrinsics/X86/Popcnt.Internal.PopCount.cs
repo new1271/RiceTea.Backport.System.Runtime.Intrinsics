@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -78,18 +78,18 @@ unsafe partial class Popcnt
 
     partial class Store
     {
-        public static ref readonly byte PopcntData_Windows => ref SpanDissolver.Dissolve(new byte[PopcntLength_Windows]
+        public static ref readonly byte PopcntData_Windows => ref Unwrap.From(new byte[PopcntLength_Windows]
         {
             0xF3, 0x0F, 0xB8, 0xC1 // popcnt eax, ecx
         });
 #if B32_ARCH || ANYCPU
-        public static ref readonly byte PopcntData_Unix_X86 => ref SpanDissolver.Dissolve(new byte[PopcntLength_Unix_X86]
+        public static ref readonly byte PopcntData_Unix_X86 => ref Unwrap.From(new byte[PopcntLength_Unix_X86]
         {
             0xF3, 0x0F, 0xB8, 0x44, 0x24, 0x04 // popcnt eax, dword ptr [esp+4]
         });
 #endif
 #if B64_ARCH || ANYCPU
-        public static ref readonly byte PopcntData_Unix_X64 => ref SpanDissolver.Dissolve(new byte[PopcntLength_Unix_X64]
+        public static ref readonly byte PopcntData_Unix_X64 => ref Unwrap.From(new byte[PopcntLength_Unix_X64]
         {
             0xF3, 0x0F, 0xB8, 0xC7 // popcnt eax, edi
         });

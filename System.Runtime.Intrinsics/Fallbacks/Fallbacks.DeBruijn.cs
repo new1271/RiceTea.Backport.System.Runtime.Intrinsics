@@ -1,13 +1,13 @@
 using System;
 using System.Runtime.CompilerServices;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace RiceTea.Backport.Fallbacks;
 
 partial class Fallbacks
 {
-    private static ref readonly byte TrailingZeroCount_32 => ref SpanDissolver.Dissolve(new byte[sizeof(uint) * 8]
+    private static ref readonly byte TrailingZeroCount_32 => ref Unwrap.From(new byte[sizeof(uint) * 8]
     {
             00, 01, 28, 02, 29, 14, 24, 03,
             30, 22, 20, 15, 25, 17, 04, 08,
@@ -15,7 +15,7 @@ partial class Fallbacks
             26, 12, 18, 06, 11, 05, 10, 09
     });
 
-    private static ref readonly byte Log2_32 => ref SpanDissolver.Dissolve(new byte[sizeof(uint) * 8]
+    private static ref readonly byte Log2_32 => ref Unwrap.From(new byte[sizeof(uint) * 8]
     {
             00, 09, 01, 10, 13, 21, 02, 29,
             11, 14, 16, 18, 22, 25, 03, 30,
@@ -24,7 +24,7 @@ partial class Fallbacks
     });
 
 #if B64_ARCH || ANYCPU
-    private static ref readonly byte TrailingZeroCount_64 => ref SpanDissolver.Dissolve(new byte[sizeof(ulong) * 8]
+    private static ref readonly byte TrailingZeroCount_64 => ref Unwrap.From(new byte[sizeof(ulong) * 8]
     {
             00, 01, 02, 53, 03, 07, 54, 27, 04, 38, 41, 08, 34, 55, 48, 28,
             62, 05, 39, 46, 44, 42, 22, 09, 24, 35, 59, 56, 49, 18, 29, 11,
@@ -32,7 +32,7 @@ partial class Fallbacks
             51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
     });
 
-    private static ref readonly byte Log2_64 => ref SpanDissolver.Dissolve(new byte[sizeof(ulong) * 8]
+    private static ref readonly byte Log2_64 => ref Unwrap.From(new byte[sizeof(ulong) * 8]
     {
             00, 58, 01, 59, 47, 53, 02, 60, 39, 48, 27, 54, 33, 42, 03, 61,
             51, 37, 40, 49, 18, 28, 20, 55, 30, 34, 11, 43, 14, 22, 04, 62,

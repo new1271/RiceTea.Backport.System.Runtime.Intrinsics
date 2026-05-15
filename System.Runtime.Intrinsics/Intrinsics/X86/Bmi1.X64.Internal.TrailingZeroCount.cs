@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -49,11 +49,11 @@ partial class Bmi1
 
         partial class Store
         {
-            public static ref readonly byte TzcntData_Windows => ref SpanDissolver.Dissolve(new byte[TzcntLength_Windows]
+            public static ref readonly byte TzcntData_Windows => ref Unwrap.From(new byte[TzcntLength_Windows]
             {
                 0xF3, 0x48, 0x0F, 0xBC, 0xC1 // tzcnt rax rcx
             });
-            public static ref readonly byte TzcntData_Unix => ref SpanDissolver.Dissolve(new byte[TzcntLength_Unix]
+            public static ref readonly byte TzcntData_Unix => ref Unwrap.From(new byte[TzcntLength_Unix]
             {
                 0xF3, 0x48, 0x0F, 0xBC, 0xC7 // tzcnt rax, rdi
             });

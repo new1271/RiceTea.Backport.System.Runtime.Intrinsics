@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -49,11 +49,11 @@ partial class Popcnt
 
         partial class Store
         {
-            public static ref readonly byte PopcntData_Windows => ref SpanDissolver.Dissolve(new byte[PopcntLength_Windows]
+            public static ref readonly byte PopcntData_Windows => ref Unwrap.From(new byte[PopcntLength_Windows]
             {
                 0xF3, 0x48, 0x0F, 0xB8, 0xC1 // popcnt rax rcx
             });
-            public static ref readonly byte PopcntData_Unix => ref SpanDissolver.Dissolve(new byte[PopcntLength_Unix]
+            public static ref readonly byte PopcntData_Unix => ref Unwrap.From(new byte[PopcntLength_Unix]
             {
                 0xF3, 0x48, 0x0F, 0xB8, 0xC7 // popcnt rax, rdi
             });

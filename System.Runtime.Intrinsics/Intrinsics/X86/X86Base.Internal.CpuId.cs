@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Injection;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -80,7 +80,7 @@ partial class X86Base
     partial class Store
     {
 #if B32_ARCH || ANYCPU
-        public static ref readonly byte CpuIdData_X86 => ref SpanDissolver.Dissolve(new byte[CpuIdLength_X86]
+        public static ref readonly byte CpuIdData_X86 => ref Unwrap.From(new byte[CpuIdLength_X86]
         {
             0x8B, 0x44, 0x24, 0x08, 0x8B, 0x4C, 0x24, 0x0C,
             0x53, 0x56, 0x8B, 0x74, 0x24, 0x0C, 0x0F, 0xA2,
@@ -89,7 +89,7 @@ partial class X86Base
         });
 #endif
 #if B64_ARCH || ANYCPU
-        public static ref readonly byte CpuIdData_Windows_X64 => ref SpanDissolver.Dissolve(new byte[CpuIdLength_Windows_X64]
+        public static ref readonly byte CpuIdData_Windows_X64 => ref Unwrap.From(new byte[CpuIdLength_Windows_X64]
         {
             0x48, 0x89, 0x5C, 0x24, 0x08, 0x49, 0x89, 0xC9,
             0x89, 0xD0, 0x44, 0x89, 0xC1, 0x0F, 0xA2, 0x41,
@@ -97,7 +97,7 @@ partial class X86Base
             0x5C, 0x24, 0x08, 0x41, 0x89, 0x49, 0x08, 0x41,
             0x89, 0x51, 0x0C, 0xC3
         });
-        public static ref readonly byte CpuIdData_Unix_X64 => ref SpanDissolver.Dissolve(new byte[CpuIdLength_Unix_X64]
+        public static ref readonly byte CpuIdData_Unix_X64 => ref Unwrap.From(new byte[CpuIdLength_Unix_X64]
         {
             0x89, 0xD1, 0x89, 0xF0, 0x48, 0x87, 0xDE, 0x0F,
             0xA2, 0x48, 0x87, 0xDE, 0x89, 0x07, 0x89, 0x77,

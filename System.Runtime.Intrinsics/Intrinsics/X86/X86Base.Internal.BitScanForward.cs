@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Backport.Internals;
 
-using SpanDissolve;
+using SpanUnwrap;
 
 namespace System.Runtime.Intrinsics.X86;
 
@@ -78,18 +78,18 @@ unsafe partial class X86Base
 
     partial class Store
     {
-        public static ref readonly byte BsfData_Windows => ref SpanDissolver.Dissolve(new byte[BsfLength_Windows]
+        public static ref readonly byte BsfData_Windows => ref Unwrap.From(new byte[BsfLength_Windows]
         {
             0x0F, 0xBC, 0xC1 // bsf eax, ecx
         });
 #if B32_ARCH || ANYCPU
-        public static ref readonly byte BsfData_Unix_X86 => ref SpanDissolver.Dissolve(new byte[BsfLength_Unix_X86]
+        public static ref readonly byte BsfData_Unix_X86 => ref Unwrap.From(new byte[BsfLength_Unix_X86]
         {
             0x0F, 0xBC, 0x44, 0x24, 0x04 // bsf eax, dword ptr [esp+4]
         });
 #endif
 #if B64_ARCH || ANYCPU
-        public static ref readonly byte BsfData_Unix_X64 => ref SpanDissolver.Dissolve(new byte[BsfLength_Unix_X64]
+        public static ref readonly byte BsfData_Unix_X64 => ref Unwrap.From(new byte[BsfLength_Unix_X64]
         {
             0x0F, 0xBC, 0xC7 // bsf eax, edi
         });
