@@ -37,42 +37,76 @@ unsafe partial class Bmi1
     [DebuggerHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
-    public static partial uint TrailingZeroCount(uint value)
-    {
-        if (!_isSupported)
-            ThrowUtils.ThrowPlatformNotSupported();
-
-        CallSiteInjector.OnInjectStart(value);
-        return CallSiteInjector.OnInjectEnd(Fallbacks.TrailingZeroCount(value), &InjectTzcntAsm);
-    }
-
-    [DebuggerHidden]
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
     public static partial uint AndNot(uint left, uint right)
     {
         if (!_isSupported)
-            ThrowUtils.ThrowPlatformNotSupported();
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
 
         CallSiteInjector.OnInjectStart(left, right);
         return CallSiteInjector.OnInjectEnd(Fallbacks.AndNot(left, right), &InjectAndnAsm);
     }
 
-    [DebuggerHidden]
-    [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial uint BitFieldExtract(uint value, byte start, byte length) => BitFieldExtract(value, (ushort)(start | (length << 8)));
 
     [DebuggerHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
     public static partial uint BitFieldExtract(uint value, ushort control)
     {
         if (!_isSupported)
-            ThrowUtils.ThrowPlatformNotSupported();
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
 
         CallSiteInjector.OnInjectStart(value, control);
         return CallSiteInjector.OnInjectEnd(Fallbacks.BitFieldExtract(value, control), &InjectBextrAsm);
+    }
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    public static partial uint ExtractLowestSetBit(uint value)
+    {
+        if (!_isSupported)
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+        CallSiteInjector.OnInjectStart(value);
+        return CallSiteInjector.OnInjectEnd(Fallbacks.ExtractLowestSetBit(value), &InjectBlsiAsm);
+    }
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    public static partial uint GetMaskUpToLowestSetBit(uint value)
+    {
+        if (!_isSupported)
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+        CallSiteInjector.OnInjectStart(value);
+        return CallSiteInjector.OnInjectEnd(Fallbacks.GetMaskUpToLowestSetBit(value), &InjectBlsmskAsm);
+    }
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    public static partial uint ResetLowestSetBit(uint value)
+    {
+        if (!_isSupported)
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+        CallSiteInjector.OnInjectStart(value);
+        return CallSiteInjector.OnInjectEnd(Fallbacks.ResetLowestSetBit(value), &InjectBlsrAsm);
+    }
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+    public static partial uint TrailingZeroCount(uint value)
+    {
+        if (!_isSupported)
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+        CallSiteInjector.OnInjectStart(value);
+        return CallSiteInjector.OnInjectEnd(Fallbacks.TrailingZeroCount(value), &InjectTzcntAsm);
     }
 
     private static partial class Store { }

@@ -38,7 +38,7 @@ unsafe partial class X86Base
     public static partial (int Eax, int Ebx, int Ecx, int Edx) CpuId(int functionId, int subFunctionId)
     {
         if (!_isSupported)
-            ThrowUtils.ThrowPlatformNotSupported();
+            return ThrowUtils.ThrowPlatformNotSupported<(int Eax, int Ebx, int Ecx, int Edx)>();
 
         NativeFunctionHolder cpuIdAsm = _cpuIdAsm;
         if (cpuIdAsm == NativeFunctionHolder.Empty)
@@ -59,7 +59,7 @@ unsafe partial class X86Base
     public static partial uint BitScanForward(uint value)
     {
         if (!_isSupported)
-            ThrowUtils.ThrowPlatformNotSupported();
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
 
         CallSiteInjector.OnInjectStart(value);
         return CallSiteInjector.OnInjectEnd(Fallbacks.BitScanForward(value), &InjectBsfAsm);
@@ -71,7 +71,7 @@ unsafe partial class X86Base
     public static partial uint BitScanReverse(uint value)
     {
         if (!_isSupported)
-            ThrowUtils.ThrowPlatformNotSupported();
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
 
         CallSiteInjector.OnInjectStart(value);
         return CallSiteInjector.OnInjectEnd(Fallbacks.BitScanReverse(value), &InjectBsrAsm);
@@ -83,7 +83,10 @@ unsafe partial class X86Base
     private static int DivRem(uint lower, int upper, int divisor, out int rem)
     {
         if (!_isSupported)
-            ThrowUtils.ThrowPlatformNotSupported();
+        {
+            rem = 0;
+            return ThrowUtils.ThrowPlatformNotSupported<int>();
+        }
 
         InjectStart(lower, upper, divisor, out rem);
         return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
@@ -129,7 +132,10 @@ unsafe partial class X86Base
     private static uint DivRem(uint lower, uint upper, uint divisor, out uint rem)
     {
         if (!_isSupported)
-            ThrowUtils.ThrowPlatformNotSupported();
+        {
+            rem = 0;
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
+        }
 
         InjectStart(lower, upper, divisor, out rem);
         return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
@@ -217,7 +223,10 @@ unsafe partial class X86Base
     public static partial void Pause()
     {
         if (!_isSupported)
+        {
             ThrowUtils.ThrowPlatformNotSupported();
+            return;
+        }
 
         CallSiteInjector.OnInjectStart();
         Fallbacks.Pause();

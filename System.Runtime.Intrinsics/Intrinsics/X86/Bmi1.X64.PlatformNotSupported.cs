@@ -22,15 +22,8 @@ partial class Bmi1
         [DebuggerHidden]
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static partial ulong TrailingZeroCount(ulong value) => ThrowUtils.ThrowPlatformNotSupported<ulong>();
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static partial ulong AndNot(ulong left, ulong right) => ThrowUtils.ThrowPlatformNotSupported<ulong>();
 
-        [DebuggerHidden]
-        [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static partial ulong BitFieldExtract(ulong value, byte start, byte length) => ThrowUtils.ThrowPlatformNotSupported<ulong>();
 
@@ -38,6 +31,26 @@ partial class Bmi1
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static partial ulong BitFieldExtract(ulong value, ushort control) => ThrowUtils.ThrowPlatformNotSupported<ulong>();
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static partial ulong ExtractLowestSetBit(ulong value) => ThrowUtils.ThrowPlatformNotSupported<ulong>();
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static partial ulong GetMaskUpToLowestSetBit(ulong value) => ThrowUtils.ThrowPlatformNotSupported<ulong>();
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static partial ulong ResetLowestSetBit(ulong value) => ThrowUtils.ThrowPlatformNotSupported<ulong>();
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static partial ulong TrailingZeroCount(ulong value) => ThrowUtils.ThrowPlatformNotSupported<ulong>();
     }
 }
 #endif

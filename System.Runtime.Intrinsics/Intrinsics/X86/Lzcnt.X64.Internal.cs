@@ -39,7 +39,7 @@ partial class Lzcnt
         public static partial ulong LeadingZeroCount(ulong value)
 		{
 			if (!_isSupported)
-				ThrowUtils.ThrowPlatformNotSupported();
+                return ThrowUtils.ThrowPlatformNotSupported<ulong>();
 
             CallSiteInjector.OnInjectStart(value);
 			return CallSiteInjector.OnInjectEnd(Fallbacks.LeadingZeroCount(value), &InjectLzcntAsm);

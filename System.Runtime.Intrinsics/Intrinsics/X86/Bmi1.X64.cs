@@ -15,13 +15,6 @@ partial class Bmi1
         public static new partial bool IsSupported { get; }
 
         /// <summary>
-        ///   <para>__int64 _mm_tzcnt_64 (unsigned __int64 a)</para>
-        ///   <para>  TZCNT r64, r/m64</para>
-        ///   <para>This intrinsic is only available on 64-bit processes</para>
-        /// </summary>
-        public static partial ulong TrailingZeroCount(ulong value);
-
-        /// <summary>
         ///   <para>unsigned __int64 _andn_u64 (unsigned __int64 a, unsigned __int64 b)</para>
         ///   <para>  ANDN r64a, r64b, r/m64</para>
         ///   <para>This intrinsic is only available on 64-bit processes</para>
@@ -41,6 +34,35 @@ partial class Bmi1
         ///   <para>This intrinsic is only available on 64-bit processes</para>
         /// </summary>
         public static partial ulong BitFieldExtract(ulong value, ushort control);
+
+        /// <summary>
+        ///   <para>unsigned __int64 _blsi_u64 (unsigned __int64 a)</para>
+        ///   <para>  BLSI r64, r/m64</para>
+        ///   <para>This intrinsic is only available on 64-bit processes</para>
+        /// </summary>
+        public static partial ulong ExtractLowestSetBit(ulong value);
+
+        /// <summary>
+        ///   <para>unsigned __int64 _blsmsk_u64 (unsigned __int64 a)</para>
+        ///   <para>  BLSMSK r64, r/m64</para>
+        ///   <para>This intrinsic is only available on 64-bit processes</para>
+        /// </summary>
+        public static partial ulong GetMaskUpToLowestSetBit(ulong value);
+
+        /// <summary>
+        ///   <para>unsigned __int64 _blsr_u64 (unsigned __int64 a)</para>
+        ///   <para>  BLSR r64, r/m64</para>
+        ///   <para>This intrinsic is only available on 64-bit processes</para>
+        /// </summary>
+        public static partial ulong ResetLowestSetBit(ulong value);
+
+        /// <summary>
+        ///   <para>__int64 _mm_tzcnt_64 (unsigned __int64 a)</para>
+        ///   <para>  TZCNT r64, r/m64</para>
+        ///   <para>This intrinsic is only available on 64-bit processes</para>
+        /// </summary>
+        public static partial ulong TrailingZeroCount(ulong value);
+
     }
 }
 #endif

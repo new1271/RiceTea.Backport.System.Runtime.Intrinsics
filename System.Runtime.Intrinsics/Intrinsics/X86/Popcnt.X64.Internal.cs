@@ -39,7 +39,7 @@ partial class Popcnt
         public static partial ulong PopCount(ulong value)
 		{
 			if (!_isSupported)
-				ThrowUtils.ThrowPlatformNotSupported();
+                return ThrowUtils.ThrowPlatformNotSupported<ulong>();
 
             CallSiteInjector.OnInjectStart(value);
 			return CallSiteInjector.OnInjectEnd(Fallbacks.PopCount(value), &InjectPopcntAsm);

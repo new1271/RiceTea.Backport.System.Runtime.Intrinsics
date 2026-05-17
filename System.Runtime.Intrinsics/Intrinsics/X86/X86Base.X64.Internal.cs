@@ -30,7 +30,7 @@ partial class X86Base
         public static partial ulong BitScanForward(ulong value)
         {
             if (!_isSupported)
-                ThrowUtils.ThrowPlatformNotSupported();
+                return ThrowUtils.ThrowPlatformNotSupported<ulong>();
 
             CallSiteInjector.OnInjectStart(value);
             return CallSiteInjector.OnInjectEnd(Fallbacks.BitScanForward(value), &InjectBsfAsm);
@@ -42,7 +42,7 @@ partial class X86Base
         public static partial ulong BitScanReverse(ulong value)
         {
             if (!_isSupported)
-                ThrowUtils.ThrowPlatformNotSupported();
+                return ThrowUtils.ThrowPlatformNotSupported<ulong>();
 
             CallSiteInjector.OnInjectStart(value);
             return CallSiteInjector.OnInjectEnd(Fallbacks.BitScanReverse(value), &InjectBsrAsm);
@@ -54,7 +54,10 @@ partial class X86Base
         private static long DivRem(ulong lower, long upper, long divisor, out long rem)
         {
             if (!_isSupported)
-                ThrowUtils.ThrowPlatformNotSupported();
+            {
+                rem = 0;
+                return ThrowUtils.ThrowPlatformNotSupported<long>();
+            }
 
             InjectStart(lower, upper, divisor, out rem);
             return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
@@ -100,7 +103,10 @@ partial class X86Base
         private static ulong DivRem(ulong lower, ulong upper, ulong divisor, out ulong rem)
         {
             if (!_isSupported)
-                ThrowUtils.ThrowPlatformNotSupported();
+            {
+                rem = 0;
+                return ThrowUtils.ThrowPlatformNotSupported<ulong>();
+            }
 
             InjectStart(lower, upper, divisor, out rem);
             return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));

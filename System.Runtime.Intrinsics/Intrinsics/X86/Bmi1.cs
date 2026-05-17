@@ -15,12 +15,6 @@ public abstract partial class Bmi1 : X86Base
     public static new partial bool IsSupported { get; }
 
     /// <summary>
-    /// int _mm_tzcnt_32 (unsigned int a)
-    ///   TZCNT r32, r/m32
-    /// </summary>
-    public static partial uint TrailingZeroCount(uint value);
-
-    /// <summary>
     ///   <para>unsigned int _andn_u32 (unsigned int a, unsigned int b)</para>
     ///   <para>  ANDN r32a, r32b, r/m32</para>
     /// </summary>
@@ -37,5 +31,29 @@ public abstract partial class Bmi1 : X86Base
     ///   <para>  BEXTR r32a, r/m32, r32b</para>
     /// </summary>
     public static partial uint BitFieldExtract(uint value, ushort control);
+
+    /// <summary>
+    ///   <para>unsigned int _blsi_u32 (unsigned int a)</para>
+    ///   <para>  BLSI r32, r/m32</para>
+    /// </summary>
+    public static partial uint ExtractLowestSetBit(uint value);
+
+    /// <summary>
+    ///   <para>unsigned int _blsmsk_u32 (unsigned int a)</para>
+    ///   <para>  BLSMSK r32, r/m32</para>
+    /// </summary>
+    public static partial uint GetMaskUpToLowestSetBit(uint value);
+
+    /// <summary>
+    ///   <para>unsigned int _blsr_u32 (unsigned int a)</para>
+    ///   <para>  BLSR r32, r/m32</para>
+    /// </summary>
+    public static partial uint ResetLowestSetBit(uint value);
+
+    /// <summary>
+    /// int _mm_tzcnt_32 (unsigned int a)
+    ///   TZCNT r32, r/m32
+    /// </summary>
+    public static partial uint TrailingZeroCount(uint value);
 }
 #endif

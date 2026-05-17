@@ -11,12 +11,6 @@ namespace RiceTea.Backport.Fallbacks.X86;
 public abstract partial class Bmi1 : X86Base
 {
     /// <summary>
-    /// See <see cref="Intrinsics.TrailingZeroCount(uint)"/>.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint TrailingZeroCount(uint value)
-        => Fallbacks.TrailingZeroCount(value);
-    /// <summary>
     /// See <see cref="Intrinsics.AndNot(uint, uint)"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -34,4 +28,29 @@ public abstract partial class Bmi1 : X86Base
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint BitFieldExtract(uint value, ushort control)
         => Fallbacks.BitFieldExtract(value, control);
+
+    /// <summary>
+    /// See <see cref="Intrinsics.ExtractLowestSetBit(uint)"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint ExtractLowestSetBit(uint value) => value & (uint)-(int)value;
+
+    /// <summary>
+    /// See <see cref="Intrinsics.GetMaskUpToLowestSetBit(uint)"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint GetMaskUpToLowestSetBit(uint value) => value ^ (value - 1);
+
+    /// <summary>
+    /// See <see cref="Intrinsics.ResetLowestSetBit(uint)"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint ResetLowestSetBit(uint value) => value & (value - 1);
+
+    /// <summary>
+    /// See <see cref="Intrinsics.TrailingZeroCount(uint)"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint TrailingZeroCount(uint value)
+        => Fallbacks.TrailingZeroCount(value);
 }

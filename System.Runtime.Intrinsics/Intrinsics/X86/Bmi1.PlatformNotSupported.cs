@@ -19,11 +19,6 @@ partial class Bmi1
     [DebuggerHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static partial uint TrailingZeroCount(uint value) => ThrowUtils.ThrowPlatformNotSupported<uint>();
-
-    [DebuggerHidden]
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial uint AndNot(uint left, uint right) => ThrowUtils.ThrowPlatformNotSupported<uint>();
 
     [DebuggerHidden]
@@ -35,6 +30,26 @@ partial class Bmi1
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial uint BitFieldExtract(uint value, ushort control) => ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial uint ExtractLowestSetBit(uint value) => ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial uint GetMaskUpToLowestSetBit(uint value) => ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial uint ResetLowestSetBit(uint value) => ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial uint TrailingZeroCount(uint value) => ThrowUtils.ThrowPlatformNotSupported<uint>();
 }
 #endif
 #endif

@@ -12,13 +12,6 @@ partial class Bmi1
     public new abstract class X64 : X86Base.X64 
     {
         /// <summary>
-        /// See <see cref="Intrinsics.TrailingZeroCount(ulong)"/>.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong TrailingZeroCount(ulong value)
-            => Fallbacks.TrailingZeroCount(value);
-
-        /// <summary>
         /// See <see cref="Intrinsics.AndNot(ulong, ulong)"/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -36,5 +29,30 @@ partial class Bmi1
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong BitFieldExtract(ulong value, ushort control)
             => Fallbacks.BitFieldExtract(value, control);
+
+        /// <summary>
+        /// See <see cref="Intrinsics.ExtractLowestSetBit(ulong)"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong ExtractLowestSetBit(ulong value) => value & (ulong) -(long)value;
+
+        /// <summary>
+        /// See <see cref="Intrinsics.GetMaskUpToLowestSetBit(ulong)"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong GetMaskUpToLowestSetBit(ulong value) => value ^ (value - 1);
+
+        /// <summary>
+        /// See <see cref="Intrinsics.ResetLowestSetBit(ulong)"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong ResetLowestSetBit(ulong value) => value & (value - 1);
+
+        /// <summary>
+        /// See <see cref="Intrinsics.TrailingZeroCount(ulong)"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong TrailingZeroCount(ulong value)
+            => Fallbacks.TrailingZeroCount(value);
     }
 }

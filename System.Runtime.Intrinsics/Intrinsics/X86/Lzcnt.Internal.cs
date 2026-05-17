@@ -40,7 +40,7 @@ unsafe partial class Lzcnt
     public static partial uint LeadingZeroCount(uint value)
 	{
 		if (!_isSupported)
-			ThrowUtils.ThrowPlatformNotSupported();
+            return ThrowUtils.ThrowPlatformNotSupported<uint>();
 
         CallSiteInjector.OnInjectStart(value);
 		return CallSiteInjector.OnInjectEnd(Fallbacks.LeadingZeroCount(value), &InjectLzcntAsm);

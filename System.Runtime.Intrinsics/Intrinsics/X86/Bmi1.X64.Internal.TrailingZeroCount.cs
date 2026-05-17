@@ -51,7 +51,7 @@ partial class Bmi1
         {
             public static ref readonly byte TzcntData_Windows => ref Unwrap.From(new byte[TzcntLength_Windows]
             {
-                0xF3, 0x48, 0x0F, 0xBC, 0xC1 // tzcnt rax rcx
+                0xF3, 0x48, 0x0F, 0xBC, 0xC1 // tzcnt rax, rcx
             });
             public static ref readonly byte TzcntData_Unix => ref Unwrap.From(new byte[TzcntLength_Unix]
             {
