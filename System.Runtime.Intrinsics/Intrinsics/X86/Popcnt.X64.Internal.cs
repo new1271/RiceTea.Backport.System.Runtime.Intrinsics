@@ -13,7 +13,7 @@ using Fallbacks = RiceTea.Backport.Fallbacks.X86.Popcnt.X64;
 
 partial class Popcnt
 {
-	partial class X64
+	unsafe partial class X64
     {
         private static readonly bool _isSupported = CheckIsSupported();
         private static readonly bool _isUnix = PlatformHelper.IsUnix;
@@ -41,43 +41,8 @@ partial class Popcnt
 			if (!_isSupported)
 				ThrowUtils.ThrowPlatformNotSupported();
 
-			InjectStart(value);
-			return InjectEnd(Fallbacks.PopCount(value));
-
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static unsafe void InjectStart(ulong value)
-            {
-                void* address = CallSiteInjector.FindCallSite();
-                ThreadStatics.StartAddress = address;
-                CallSiteInjector.EnterAddressLock(address);
-            }
-
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static unsafe ulong InjectEnd(ulong value)
-            {
-                try
-                {
-                    CallSiteInjector.Inject(
-                        startAddress: ThreadStatics.StartAddress,
-                        endAddress: CallSiteInjector.FindCallSite(),
-                        injectorFunc: &InjectPopcntAsm,
-                        exitLockFunc: &ExitLock);
-                    return value;
-                }
-                finally
-                {
-                    ExitLock();
-                }
-            }
-
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static unsafe void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+            CallSiteInjector.OnInjectStart(value);
+			return CallSiteInjector.OnInjectEnd(Fallbacks.PopCount(value), &InjectPopcntAsm);
         }
 
         private static partial class Store { }

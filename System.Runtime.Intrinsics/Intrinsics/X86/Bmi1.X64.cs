@@ -20,6 +20,27 @@ partial class Bmi1
         ///   <para>This intrinsic is only available on 64-bit processes</para>
         /// </summary>
         public static partial ulong TrailingZeroCount(ulong value);
+
+        /// <summary>
+        ///   <para>unsigned __int64 _andn_u64 (unsigned __int64 a, unsigned __int64 b)</para>
+        ///   <para>  ANDN r64a, r64b, r/m64</para>
+        ///   <para>This intrinsic is only available on 64-bit processes</para>
+        /// </summary>
+        public static partial ulong AndNot(ulong left, ulong right);
+
+        /// <summary>
+        ///   <para>unsigned __int64 _bextr_u64 (unsigned __int64 a, unsigned int start, unsigned int len)</para>
+        ///   <para>  BEXTR r64a, r/m64, r64b</para>
+        ///   <para>This intrinsic is only available on 64-bit processes</para>
+        /// </summary>
+        public static partial ulong BitFieldExtract(ulong value, byte start, byte length);
+
+        /// <summary>
+        ///   <para>unsigned __int64 _bextr2_u64 (unsigned __int64 a, unsigned __int64 control)</para>
+        ///   <para>  BEXTR r64a, r/m64, r64b</para>
+        ///   <para>This intrinsic is only available on 64-bit processes</para>
+        /// </summary>
+        public static partial ulong BitFieldExtract(ulong value, ushort control);
     }
 }
 #endif

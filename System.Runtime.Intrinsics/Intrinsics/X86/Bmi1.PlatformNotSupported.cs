@@ -20,6 +20,21 @@ partial class Bmi1
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial uint TrailingZeroCount(uint value) => ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial uint AndNot(uint left, uint right) => ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial uint BitFieldExtract(uint value, byte start, byte length) => ThrowUtils.ThrowPlatformNotSupported<uint>();
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static partial uint BitFieldExtract(uint value, ushort control) => ThrowUtils.ThrowPlatformNotSupported<uint>();
 }
 #endif
 #endif

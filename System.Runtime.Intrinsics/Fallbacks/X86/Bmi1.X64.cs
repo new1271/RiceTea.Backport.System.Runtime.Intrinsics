@@ -17,5 +17,24 @@ partial class Bmi1
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong TrailingZeroCount(ulong value)
             => Fallbacks.TrailingZeroCount(value);
+
+        /// <summary>
+        /// See <see cref="Intrinsics.AndNot(ulong, ulong)"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong AndNot(ulong left, ulong right) => (~left) & right;
+
+        /// <summary>
+        /// See <see cref="Intrinsics.BitFieldExtract(ulong, byte, byte)"/>.
+        /// </summary>
+        public static ulong BitFieldExtract(ulong value, byte start, byte length)
+            => BitFieldExtract(value, (ushort)(start | (length << 8)));
+
+        /// <summary>
+        /// See <see cref="Intrinsics.BitFieldExtract(ulong, ushort)"/>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ulong BitFieldExtract(ulong value, ushort control)
+            => Fallbacks.BitFieldExtract(value, control);
     }
 }

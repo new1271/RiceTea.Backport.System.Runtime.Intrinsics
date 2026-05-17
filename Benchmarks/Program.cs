@@ -11,7 +11,6 @@ bool lzcntSupported64 = Lzcnt.X64.IsSupported;
 bool popcntSupported = Popcnt.IsSupported;
 bool popcntSupported64 = Popcnt.X64.IsSupported;
 
-
 Console.WriteLine("Bmi1.IsSupported = " + bmi1Supported.ToString());
 Console.WriteLine("Bmi1.X64.IsSupported = " + bmi1Supported64.ToString());
 Console.WriteLine("Lzcnt.IsSupported = " + lzcntSupported.ToString());

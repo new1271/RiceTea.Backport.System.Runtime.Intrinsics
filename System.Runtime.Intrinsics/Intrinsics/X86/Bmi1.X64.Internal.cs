@@ -11,7 +11,7 @@ using Fallbacks = RiceTea.Backport.Fallbacks.X86.Bmi1.X64;
 
 namespace System.Runtime.Intrinsics.X86;
 
-partial class Bmi1
+unsafe partial class Bmi1
 {
     partial class X64
     {
@@ -41,43 +41,37 @@ partial class Bmi1
             if (!_isSupported)
                 ThrowUtils.ThrowPlatformNotSupported();
 
-            InjectStart(value);
-            return InjectEnd(Fallbacks.TrailingZeroCount(value));
+            CallSiteInjector.OnInjectStart(value);
+            return CallSiteInjector.OnInjectEnd(Fallbacks.TrailingZeroCount(value), &InjectTzcntAsm);
+        }
 
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static unsafe void InjectStart(ulong value)
-            {
-                void* address = CallSiteInjector.FindCallSite();
-                ThreadStatics.StartAddress = address;
-                CallSiteInjector.EnterAddressLock(address);
-            }
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
+        public static partial ulong AndNot(ulong left, ulong right)
+        {
+            if (!_isSupported)
+                ThrowUtils.ThrowPlatformNotSupported();
 
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static unsafe ulong InjectEnd(ulong value)
-            {
-                try
-                {
-                    CallSiteInjector.Inject(
-                        startAddress: ThreadStatics.StartAddress,
-                        endAddress: CallSiteInjector.FindCallSite(),
-                        injectorFunc: &InjectTzcntAsm,
-                        exitLockFunc: &ExitLock);
-                    return value;
-                }
-                finally
-                {
-                    ExitLock();
-                }
-            }
+            CallSiteInjector.OnInjectStart(left, right);
+            return CallSiteInjector.OnInjectEnd(Fallbacks.AndNot(left, right), &InjectAndnAsm);
+        }
 
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static unsafe void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static partial ulong BitFieldExtract(ulong value, byte start, byte length) => BitFieldExtract(value, (ushort)(start | (length << 8)));
+
+        [DebuggerHidden]
+        [DebuggerStepThrough]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static partial ulong BitFieldExtract(ulong value, ushort control)
+        {
+            if (!_isSupported)
+                ThrowUtils.ThrowPlatformNotSupported();
+
+            CallSiteInjector.OnInjectStart(value, control);
+            return CallSiteInjector.OnInjectEnd(Fallbacks.BitFieldExtract(value, control), &InjectBextrAsm);
         }
 
         private static partial class Store { }

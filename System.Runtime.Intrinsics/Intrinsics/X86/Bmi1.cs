@@ -19,5 +19,23 @@ public abstract partial class Bmi1 : X86Base
     ///   TZCNT r32, r/m32
     /// </summary>
     public static partial uint TrailingZeroCount(uint value);
+
+    /// <summary>
+    ///   <para>unsigned int _andn_u32 (unsigned int a, unsigned int b)</para>
+    ///   <para>  ANDN r32a, r32b, r/m32</para>
+    /// </summary>
+    public static partial uint AndNot(uint left, uint right);
+
+    /// <summary>
+    ///   <para>unsigned int _bextr_u32 (unsigned int a, unsigned int start, unsigned int len)</para>
+    ///   <para>  BEXTR r32a, r/m32, r32b</para>
+    /// </summary>
+    public static partial uint BitFieldExtract(uint value, byte start, byte length);
+
+    /// <summary>
+    ///   <para>unsigned int _bextr2_u32 (unsigned int a, unsigned int control)</para>
+    ///   <para>  BEXTR r32a, r/m32, r32b</para>
+    /// </summary>
+    public static partial uint BitFieldExtract(uint value, ushort control);
 }
 #endif

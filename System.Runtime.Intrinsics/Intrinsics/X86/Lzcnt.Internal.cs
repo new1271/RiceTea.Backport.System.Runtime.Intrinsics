@@ -11,7 +11,7 @@ using Fallbacks = RiceTea.Backport.Fallbacks.X86.Lzcnt;
 
 namespace System.Runtime.Intrinsics.X86;
 
-partial class Lzcnt
+unsafe partial class Lzcnt
 {
     private static readonly bool _isSupported = CheckIsSupported();
     private static readonly bool _isUnix = PlatformHelper.IsUnix && (PlatformHelper.IsX64 || PlatformHelper.IsMono);
@@ -42,43 +42,8 @@ partial class Lzcnt
 		if (!_isSupported)
 			ThrowUtils.ThrowPlatformNotSupported();
 
-		InjectStart(value);
-		return InjectEnd(Fallbacks.LeadingZeroCount(value));
-
-		[DebuggerHidden]
-		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		static unsafe void InjectStart(uint value)
-		{
-            void* address = CallSiteInjector.FindCallSite();
-            ThreadStatics.StartAddress = address;
-            CallSiteInjector.EnterAddressLock(address);
-        }
-
-		[DebuggerHidden]
-		[DebuggerStepThrough]
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		static unsafe uint InjectEnd(uint value)
-        {
-            try
-            {
-                CallSiteInjector.Inject(
-                    startAddress: ThreadStatics.StartAddress,
-                    endAddress: CallSiteInjector.FindCallSite(),
-                    injectorFunc: &InjectLzcntAsm,
-                    exitLockFunc: &ExitLock);
-                return value;
-            }
-            finally
-            {
-                ExitLock();
-            }
-        }
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static unsafe void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+        CallSiteInjector.OnInjectStart(value);
+		return CallSiteInjector.OnInjectEnd(Fallbacks.LeadingZeroCount(value), &InjectLzcntAsm);
     }
 
     private static partial class Store { }

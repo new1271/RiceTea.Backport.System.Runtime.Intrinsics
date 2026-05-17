@@ -198,6 +198,104 @@ internal static partial class Fallbacks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint BitFieldExtract(uint value, ushort control)
+    {
+#if B64_ARCH
+        return Core64(value, control);
+#elif ANYCPU
+        if (_isX64)
+            return Core64(value, control);
+        else
+            return CoreDefault(value, control);
+#else
+        return CoreDefault(value, control);
+#endif
+
+#if B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static uint Core64(uint value, ushort control)
+        {
+            int start = control & 0xFF;
+            int length = (control >> 8) & 0xFF;
+            uint mask = (uint)((1UL << length) - 1UL);
+            return (value >> start) & mask;
+        }
+#endif
+
+#if !B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static uint CoreDefault(uint value, ushort control)
+        {
+            int start = control & 0xFF;
+            int length = (control >> 8) & 0xFF;
+            int shift_amt = length & 31;
+            uint mask = (0xFFFFFFFFU >> (32 - shift_amt)) * (length != 0 ? 1u : 0u);
+            return (value >> start) & mask;
+        }
+#endif
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong BitFieldExtract(ulong value, ushort control)
+    {
+#if B64_ARCH
+        return Core64(value, control);
+#elif ANYCPU
+        if (_isX64)
+            return Core64(value, control);
+        else
+            return CoreDefault(value, control);
+#else
+        return CoreDefault(value, control);
+#endif
+
+#if B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong Core64(ulong value, ushort control)
+        {
+            int start = control & 0xFF;
+            int length = (control >> 8) & 0xFF;
+            int is_64 = (length >> 6) & 1;
+            length = (length & 63) | (-is_64 & 64);
+
+            int t = length - 1;
+            int shift_amt1 = (t >> 31) ^ t;
+            ulong mask = ((1UL << (length >> 1)) << (length - (length >> 1))) - 1UL;
+            int start_valid = ((start - 64) >> 31) & 1;
+
+            return ((value >> (start & 63)) & mask) * (ulong)start_valid;
+        }
+#endif
+
+#if !B64_ARCH || ANYCPU
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong CoreDefault(ulong value, ushort control)
+        {
+            int start = control & 0xFF;
+            int length = (control >> 8) & 0xFF;
+            length = length > 64 ? 64 : length;
+
+            int low_len = length & 31;
+            int is_gt_32 = (32 - length) >> 31;
+
+            low_len = (low_len & is_gt_32) | (length & ~is_gt_32);
+            int high_len = (length - 32) & -(length >> 5);
+
+            uint mask_lo = (0xFFFFFFFFU >> (32 - (low_len & 31))) * (uint)((low_len + 31) >> 5);
+            uint mask_hi = (0xFFFFFFFFU >> (32 - (high_len & 31))) * (uint)((high_len + 31) >> 5);
+            mask_lo |= (uint)(((length - 32) >> 31) ^ 1) * 0xFFFFFFFFU;
+            mask_hi |= (uint)(((length - 64) >> 31) ^ 1) * 0xFFFFFFFFU;
+            mask_hi *= (uint)(length >> 5);
+
+            ulong mask = ((ulong)mask_hi << 32) | mask_lo;
+            int start_valid = ((start - 64) >> 31) & 1;
+
+            return ((value >> (start & 63)) & mask) * (ulong)start_valid;
+        }
+#endif
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int DivRem(uint lower, int upper, int divisor, out int remainder)
     {
         if (divisor == 0)

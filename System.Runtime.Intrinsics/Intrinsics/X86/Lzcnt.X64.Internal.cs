@@ -13,7 +13,7 @@ namespace System.Runtime.Intrinsics.X86;
 
 partial class Lzcnt
 {
-	partial class X64
+	unsafe partial class X64
     {
         private static readonly bool _isSupported = CheckIsSupported();
         private static readonly bool _isUnix = PlatformHelper.IsUnix;
@@ -41,43 +41,8 @@ partial class Lzcnt
 			if (!_isSupported)
 				ThrowUtils.ThrowPlatformNotSupported();
 
-			InjectStart(value);
-			return InjectEnd(Fallbacks.LeadingZeroCount(value));
-
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static unsafe void InjectStart(ulong value)
-            {
-                void* address = CallSiteInjector.FindCallSite();
-                ThreadStatics.StartAddress = address;
-                CallSiteInjector.EnterAddressLock(address);
-            }
-
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static unsafe ulong InjectEnd(ulong value)
-            {
-                try
-                {
-                    CallSiteInjector.Inject(
-                        startAddress: ThreadStatics.StartAddress,
-                        endAddress: CallSiteInjector.FindCallSite(),
-                        injectorFunc: &InjectLzcntAsm,
-                        exitLockFunc: &ExitLock);
-                    return value;
-                }
-                finally
-                {
-                    ExitLock();
-                }
-            }
-
-            [DebuggerHidden]
-            [DebuggerStepThrough]
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            static unsafe void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+            CallSiteInjector.OnInjectStart(value);
+			return CallSiteInjector.OnInjectEnd(Fallbacks.LeadingZeroCount(value), &InjectLzcntAsm);
         }
 
         private static partial class Store { }

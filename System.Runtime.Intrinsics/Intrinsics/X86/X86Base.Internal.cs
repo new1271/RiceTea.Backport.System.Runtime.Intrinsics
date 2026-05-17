@@ -61,43 +61,8 @@ unsafe partial class X86Base
         if (!_isSupported)
             ThrowUtils.ThrowPlatformNotSupported();
 
-        InjectStart(value);
-        return InjectEnd(Fallbacks.BitScanForward(value));
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static void InjectStart(uint value)
-        {
-            void* address = CallSiteInjector.FindCallSite();
-            ThreadStatics.StartAddress = address;
-            CallSiteInjector.EnterAddressLock(address);
-        }
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static uint InjectEnd(uint value)
-        {
-            try
-            {
-                CallSiteInjector.Inject(
-                    startAddress: ThreadStatics.StartAddress,
-                    endAddress: CallSiteInjector.FindCallSite(),
-                    injectorFunc: &InjectBsfAsm,
-                    exitLockFunc: &ExitLock);
-                return value;
-            }
-            finally
-            {
-                ExitLock();
-            }
-        }
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+        CallSiteInjector.OnInjectStart(value);
+        return CallSiteInjector.OnInjectEnd(Fallbacks.BitScanForward(value), &InjectBsfAsm);
     }
 
     [DebuggerHidden]
@@ -108,43 +73,8 @@ unsafe partial class X86Base
         if (!_isSupported)
             ThrowUtils.ThrowPlatformNotSupported();
 
-        InjectStart(value);
-        return InjectEnd(Fallbacks.BitScanReverse(value));
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static void InjectStart(uint value)
-        {
-            void* address = CallSiteInjector.FindCallSite();
-            ThreadStatics.StartAddress = address;
-            CallSiteInjector.EnterAddressLock(address);
-        }
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static uint InjectEnd(uint value)
-        {
-            try
-            {
-                CallSiteInjector.Inject(
-                    startAddress: ThreadStatics.StartAddress,
-                    endAddress: CallSiteInjector.FindCallSite(),
-                    injectorFunc: &InjectBsrAsm,
-                    exitLockFunc: &ExitLock);
-                return value;
-            }
-            finally
-            {
-                ExitLock();
-            }
-        }
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+        CallSiteInjector.OnInjectStart(value);
+        return CallSiteInjector.OnInjectEnd(Fallbacks.BitScanReverse(value), &InjectBsrAsm);
     }
 
     [DebuggerHidden]
@@ -289,41 +219,9 @@ unsafe partial class X86Base
         if (!_isSupported)
             ThrowUtils.ThrowPlatformNotSupported();
 
-        InjectStart();
+        CallSiteInjector.OnInjectStart();
         Fallbacks.Pause();
-        InjectEnd();
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static void InjectStart()
-        {
-            void* address = CallSiteInjector.FindCallSite();
-            ThreadStatics.StartAddress = address;
-            CallSiteInjector.EnterAddressLock(address);
-        }
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static void InjectEnd()
-        {
-            try
-            {
-                CallSiteInjector.Inject(
-                    startAddress: ThreadStatics.StartAddress,
-                    endAddress: CallSiteInjector.FindCallSite(),
-                    injectorFunc: &InjectPauseAsm,
-                    exitLockFunc: &ExitLock);
-            }
-            finally
-            {
-                ExitLock();
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+        CallSiteInjector.OnInjectEnd(&InjectPauseAsm);
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 4, Size = sizeof(int) * 4)]

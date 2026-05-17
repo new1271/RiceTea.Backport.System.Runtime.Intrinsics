@@ -46,6 +46,9 @@ public static unsafe partial class CallSiteInjector
     private static IntPtr _lastPriorityInstructionHandler;
 
     [ThreadStatic]
+    private static void* _injectionStartAddress;
+
+    [ThreadStatic]
     private static ThreadAssociatedLock? _currentAddressLock;
 
     private sealed class ThreadAssociatedLock
@@ -69,6 +72,118 @@ public static unsafe partial class CallSiteInjector
         }
 
         public void Unlock() => Volatile.Write(ref _flag, true);
+    }
+
+    /// <summary>
+    /// The start marker for injection area, you must select the version that the parameters' type and count are same with your method.
+    /// </summary>
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void OnInjectStart() 
+    {
+        void* address = FindCallSite();
+        _injectionStartAddress = address;
+        EnterAddressLock(address);
+    }
+
+    /// <inheritdoc cref="OnInjectStart()"/>
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void OnInjectStart<T>(T value) 
+        where T : unmanaged
+    {
+        void* address = FindCallSite();
+        _injectionStartAddress = address;
+        EnterAddressLock(address);
+    }
+
+    /// <inheritdoc cref="OnInjectStart()"/>
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void OnInjectStart<T1, T2>(T1 value, T2 value2) 
+        where T1 : unmanaged where T2 : unmanaged
+    {
+        void* address = FindCallSite();
+        _injectionStartAddress = address;
+        EnterAddressLock(address);
+    }
+
+    /// <inheritdoc cref="OnInjectStart()"/>
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void OnInjectStart<T1, T2, T3>(T1 value, T2 value2, T3 value3)
+        where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged
+    {
+        void* address = FindCallSite();
+        _injectionStartAddress = address;
+        EnterAddressLock(address);
+    }
+
+    /// <inheritdoc cref="OnInjectStart()"/>
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void OnInjectStart<T1, T2, T3, T4>(T1 value, T2 value2, T3 value3, T4 value4)
+        where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged
+    {
+        void* address = FindCallSite();
+        _injectionStartAddress = address;
+        EnterAddressLock(address);
+    }
+
+    /// <summary>
+    /// The end marker and the injector for injection area, you must select the version that the return type is same with your method.
+    /// </summary>
+    /// <param name="injectorFunc">The machine code injector function.</param>
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void OnInjectEnd(delegate* managed<ref void*, ref uint, void> injectorFunc)
+    {
+        void* startAddress = _injectionStartAddress;
+        try
+        {
+            Inject(
+                startAddress: startAddress,
+                endAddress: FindCallSite(),
+                injectorFunc: injectorFunc,
+                exitLockFunc: &LeaveAddressLock);
+        }
+        finally
+        {
+            LeaveAddressLock(startAddress);
+        }
+    }
+
+    /// <summary>
+    /// The end marker and the injector for injection area, you must select the version that the return type is same with your method.
+    /// </summary>
+    /// <param name="result">The result for the fallback logic</param>
+    /// <param name="injectorFunc">The machine code injector function.</param>
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static T OnInjectEnd<T>(T result, delegate* managed<ref void*, ref uint, void> injectorFunc)
+        where T : unmanaged
+    {
+        void* startAddress = _injectionStartAddress;
+        try
+        {
+            Inject(
+                startAddress: startAddress,
+                endAddress: FindCallSite(),
+                injectorFunc: injectorFunc,
+                exitLockFunc: &LeaveAddressLock);
+            return result;
+        }
+        finally
+        {
+            LeaveAddressLock(startAddress);
+        }
     }
 
     /// <summary>
@@ -155,6 +270,7 @@ public static unsafe partial class CallSiteInjector
             return (byte*)callSiteMethodStartAddress + offset;
 
     Failed:
+        Console.WriteLine("?");
         return null;
     }
 
@@ -185,6 +301,11 @@ public static unsafe partial class CallSiteInjector
             wait.SpinOnce();
         while (!locker.IsUnlocked);
     }
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LeaveAddressLock() => LeaveAddressLock(_injectionStartAddress);
 
     /// <summary>
     /// Leaves the lock for <paramref name="address"/>
@@ -280,7 +401,7 @@ public static unsafe partial class CallSiteInjector
             return;
 
         Aligned_Address: // only the address is aligned (and the instruction is same)
-            *(int*)ptr = offset;
+            *pOffset = offset;
             return;
         }
     }
@@ -327,7 +448,7 @@ public static unsafe partial class CallSiteInjector
             return;
 
         Aligned_Address: // only the address is aligned (and the instruction is same)
-            *(int*)ptr = offset;
+            *pOffset = offset;
             return;
         }
     }
