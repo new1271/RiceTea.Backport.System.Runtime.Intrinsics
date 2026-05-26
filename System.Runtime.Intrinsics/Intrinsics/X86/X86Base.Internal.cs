@@ -80,113 +80,57 @@ unsafe partial class X86Base
     [DebuggerHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
-    private static int DivRem(uint lower, int upper, int divisor, out int rem)
+    private static int DivRem(Register64* pDividendOrRemainder, int divisor)
     {
         if (!_isSupported)
-        {
-            rem = 0;
             return ThrowUtils.ThrowPlatformNotSupported<int>();
-        }
 
-        InjectStart(lower, upper, divisor, out rem);
-        return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static void InjectStart(uint lower, int upper, int divisor, out int rem)
-        {
-            rem = 0;
-            void* address = CallSiteInjector.FindCallSite();
-            ThreadStatics.StartAddress = address;
-            CallSiteInjector.EnterAddressLock(address);
-        }
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static int InjectEnd(int value)
-        {
-            try
-            {
-                CallSiteInjector.Inject(
-                    startAddress: ThreadStatics.StartAddress,
-                    endAddress: CallSiteInjector.FindCallSite(),
-                    injectorFunc: &InjectIDivAsm,
-                    exitLockFunc: &ExitLock);
-                return value;
-            }
-            finally
-            {
-                ExitLock();
-            }
-        }
+        CallSiteInjector.OnInjectStart((nuint)pDividendOrRemainder, divisor);
+        return CallSiteInjector.OnInjectEnd(Fallback(pDividendOrRemainder, divisor), &InjectIDivAsm);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+        static int Fallback(Register64* pDividendOrRemainder, int divisor)
+        {
+            int quotient = Fallbacks.DivRem(pDividendOrRemainder->Lower, pDividendOrRemainder->iUpper, divisor, out int rem);
+            pDividendOrRemainder->Lower = (uint)rem;
+            return quotient;
+        }
     }
 
     [DebuggerHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.NoOptimization)] // 避免尾呼叫優化
-    private static uint DivRem(uint lower, uint upper, uint divisor, out uint rem)
+    private static uint DivRem(Register64* pDividendOrRemainder, uint divisor)
     {
         if (!_isSupported)
-        {
-            rem = 0;
             return ThrowUtils.ThrowPlatformNotSupported<uint>();
-        }
 
-        InjectStart(lower, upper, divisor, out rem);
-        return InjectEnd(Fallbacks.DivRem(lower, upper, divisor, out rem));
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static void InjectStart(uint lower, uint upper, uint divisor, out uint rem)
-        {
-            rem = 0;
-            void* address = CallSiteInjector.FindCallSite();
-            ThreadStatics.StartAddress = address;
-            CallSiteInjector.EnterAddressLock(address);
-        }
-
-        [DebuggerHidden]
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static uint InjectEnd(uint value)
-        {
-            try
-            {
-                CallSiteInjector.Inject(
-                    startAddress: ThreadStatics.StartAddress,
-                    endAddress: CallSiteInjector.FindCallSite(),
-                    injectorFunc: &InjectDivAsm,
-                    exitLockFunc: &ExitLock);
-                return value;
-            }
-            finally
-            {
-                ExitLock();
-            }
-        }
+        CallSiteInjector.OnInjectStart((nuint)pDividendOrRemainder, divisor);
+        return CallSiteInjector.OnInjectEnd(Fallback(pDividendOrRemainder, divisor), &InjectDivAsm);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ExitLock() => CallSiteInjector.LeaveAddressLock(ThreadStatics.StartAddress);
+        static uint Fallback(Register64* pDividendOrRemainder, uint divisor)
+        {
+            uint quotient = Fallbacks.DivRem(pDividendOrRemainder->Lower, pDividendOrRemainder->uUpper, divisor, out uint rem);
+            pDividendOrRemainder->Lower = rem;
+            return quotient;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial (int Quotient, int Remainder) DivRem(uint lower, int upper, int divisor)
     {
-        int quotient = DivRem(lower, upper, divisor, out int remainder);
-        return (quotient, remainder);
+        Register64 register = new() { Lower = lower, iUpper = upper };
+        int quotient = DivRem(&register, divisor);
+        return (quotient, (int)register.Lower);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static partial (uint Quotient, uint Remainder) DivRem(uint lower, uint upper, uint divisor)
     {
-        uint quotient = DivRem(lower, upper, divisor, out uint remainder);
-        return (quotient, remainder);
+        Register64 register = new() { Lower = lower, uUpper = upper };
+        uint quotient = DivRem(&register, divisor);
+        return (quotient, register.Lower);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -240,6 +184,17 @@ unsafe partial class X86Base
 
         public override readonly string ToString()
             => $"{{EAX = {_eax}, EBX = {_ebx}, ECX = {_ecx}, EDX = {_edx}}}";
+    }
+
+    [StructLayout(LayoutKind.Explicit, Pack = 4, Size = sizeof(ulong))]
+    private struct Register64
+    {
+        [FieldOffset(0)]
+        public uint Lower;
+        [FieldOffset(4)]
+        public int iUpper;
+        [FieldOffset(4)]
+        public uint uUpper;
     }
 
     private static partial class Store { }
