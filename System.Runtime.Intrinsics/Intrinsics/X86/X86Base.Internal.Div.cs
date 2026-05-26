@@ -16,7 +16,7 @@ unsafe partial class X86Base
     private const int DivLength_Unix_X86 = 19;
 #endif
 #if B64_ARCH || ANYCPU
-    private const int DivLength_Windows_X64 = 14;
+    private const int DivLength_Windows_X64 = 13;
     private const int DivLength_Unix_X64 = 9;
 #endif
 
@@ -129,7 +129,7 @@ unsafe partial class X86Base
         {
             0x41, 0x89, 0xD0, // mov r8d, edx
             0x8B, 0x01, // mov eax, dword ptr [rcx]
-            0x67, 0x8B, 0x51, 0x04, // mov edx, dword ptr [ecx+4]
+            0x8B, 0x51, 0x04, // mov edx, dword ptr [rcx+4]
             0x41, 0xF7, 0xF0, // div r8d
             0x89, 0x11 // mov dword ptr [rcx], edx
         });
